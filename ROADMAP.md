@@ -14,17 +14,16 @@
 
 ## Phase 2: Google OAuth & API Client
 
-- [ ] Create `src/google/types.ts` with Google Tasks types
-- [ ] Create `src/google/oauth.ts` for OAuth token management
-  - [ ] Implement token refresh logic
-  - [ ] Implement in-memory token storage
-- [ ] Create `src/google/client.ts` for Google Tasks API client
-  - [ ] Implement `GoogleTasksClient` class
-  - [ ] Implement `getTaskLists()` method
-  - [ ] Implement `createTask(listId, task)` method
-  - [ ] Add automatic token refresh
-  - [ ] Add basic error handling
-- [ ] Test Google API connection manually
+- [x] Create `src/services/GoogleTasksService.ts` for Google Tasks API client
+  - [x] Include Google Tasks types in the same file
+  - [x] Implement `GoogleTasksService` class
+  - [x] Implement `getTaskLists()` method
+  - [x] Implement `createTask(listId, task)` method
+  - [x] Add automatic token refresh
+  - [x] Add basic error handling
+- [x] Test Google API connection manually
+  - [x] Create `test-connection.ts` script
+  - [x] Run test and verify connection works
 
 ## Phase 3: MCP Protocol Foundation
 

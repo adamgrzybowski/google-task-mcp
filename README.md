@@ -35,7 +35,69 @@ cp .env.example .env
    - `GOOGLE_CLIENT_SECRET` - Your Google OAuth Client Secret
    - `GOOGLE_REFRESH_TOKEN` - Your OAuth Refresh Token
 
+### Getting OAuth Credentials
+
+To access your private Google Tasks, you need to set up OAuth 2.0 credentials:
+
+#### Step 1: Create OAuth Credentials in Google Cloud Console
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Enable **Google Tasks API**:
+   - Go to **APIs & Services** > **Library**
+   - Search for "Google Tasks API"
+   - Click **Enable**
+4. Create OAuth 2.0 credentials:
+   - Go to **APIs & Services** > **Credentials**
+   - Click **Create Credentials** > **OAuth client ID**
+   - Application type: **Desktop app**
+   - Name: "Google Tasks MCP" (or any name you prefer)
+   - Click **Create**
+5. Copy the **Client ID** and **Client Secret**
+6. Add them to your `.env` file:
+   ```
+   GOOGLE_CLIENT_ID=your_client_id_here
+   GOOGLE_CLIENT_SECRET=your_client_secret_here
+   ```
+
+#### Step 2: Get Your Refresh Token
+
+After setting up Client ID and Client Secret, get your refresh token:
+
+```bash
+bun run get-oauth-token
+```
+
+This will:
+
+1. Open a browser window asking you to sign in with your Google account
+2. Ask for permission to access Google Tasks
+3. Give you an authorization code
+4. Exchange it for a refresh token
+5. Save the refresh token to your `.env` file
+
+**Important:** The refresh token allows the application to access your Google Tasks without you needing to sign in again. Keep it secure and never commit it to git.
+
+#### How It Works
+
+1. **Initial Authorization**: When you run `get-oauth-token`, you authorize the app to access your Google Tasks
+2. **Refresh Token**: Google gives you a refresh token that doesn't expire (unless revoked)
+3. **Automatic Token Refresh**: The app uses the refresh token to get new access tokens automatically when needed (access tokens expire after ~1 hour)
+4. **No Re-authorization Needed**: Once you have the refresh token, you don't need to sign in again - everything happens automatically in the background
+
 ## Usage
+
+### Testing the Connection
+
+Before running the MCP server, you can test your Google API connection:
+
+```bash
+bun run test:connection
+```
+
+This will verify that your OAuth credentials are correct and that you can successfully connect to the Google Tasks API.
+
+### Running the MCP Server
 
 Run the MCP server:
 
@@ -73,9 +135,9 @@ The server uses stdio transport for MCP communication and can be configured in M
 │  └───────────┬───────────────────────┘  │
 │              │                           │
 │  ┌───────────▼───────────────────────┐  │
-│  │  Google Tasks Client               │  │
-│  │  - OAuth token management          │  │
+│  │  Google Tasks Service              │  │
 │  │  - API calls                       │  │
+│  │  - Automatic token refresh         │  │
 │  └───────────┬───────────────────────┘  │
 └──────────────┼───────────────────────────┘
                │
@@ -91,15 +153,14 @@ The server uses stdio transport for MCP communication and can be configured in M
 
 - **MCP Protocol Handler**: Handles MCP protocol-compliant communication, routes requests, registers tools, handles JSON-RPC over stdio
 - **Tool Handlers**: Implementations of task operations, each responsible for one action, return results in MCP format
-- **Google Tasks Client**: OAuth token management (refresh, in-memory storage), executes API requests, basic error handling
-- **OAuth Service**: OAuth 2.0 authorization flow, refresh token storage (in-memory), manual OAuth setup
+- **Google Tasks Service**: Executes API requests with automatic OAuth token refresh (handled by googleapis), basic error handling
 
 ### Operation Flow
 
 1. MCP Client sends tool call request
 2. MCP Protocol Handler routes to appropriate tool handler
-3. Tool Handler validates parameters and calls Google Tasks Client
-4. Google Tasks Client manages OAuth tokens and makes API calls
+3. Tool Handler validates parameters and calls Google Tasks Service
+4. Google Tasks Service makes API calls (googleapis handles OAuth token refresh automatically)
 5. Response flows back through the chain to MCP Client
 
 ## Project Structure
@@ -113,10 +174,8 @@ google-task-mcp/
 │   │   │   ├── tasklists.ts
 │   │   │   └── tasks.ts
 │   │   └── types.ts          # MCP type definitions
-│   ├── google/
-│   │   ├── client.ts         # Google Tasks API client
-│   │   ├── oauth.ts          # OAuth token management
-│   │   └── types.ts          # Google API types
+│   ├── services/
+│   │   └── GoogleTasksService.ts  # Google Tasks API client & types
 │   └── utils/
 │       └── errors.ts         # Error utilities
 ├── package.json
