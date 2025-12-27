@@ -1,6 +1,6 @@
 {
   "name": "google-task-mcp",
-  "module": "index.ts",
+  "module": "src/index.ts",
   "type": "module",
   "private": true,
   "scripts": {
