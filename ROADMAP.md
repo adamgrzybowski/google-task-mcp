@@ -2,13 +2,15 @@
 
 ## Phase 1: Project Setup
 
-- [ ] Initialize Bun project (`bun init`)
-- [ ] Setup TypeScript configuration (`tsconfig.json`)
-- [ ] Create project directory structure
-- [ ] Setup `.env.example` with required variables
-- [ ] Create `package.json` with dependencies
-- [ ] Install dependencies: `@modelcontextprotocol/sdk`, `googleapis`
-- [ ] Create basic `README.md`
+- [x] Initialize Bun project (`bun init`)
+- [x] Setup TypeScript configuration (`tsconfig.json`)
+- [x] Create project directory structure
+- [x] Setup `.env.example` with required variables
+- [x] Create `package.json` with dependencies
+- [x] Install dependencies: `@modelcontextprotocol/sdk`, `googleapis`
+- [x] Setup Prettier configuration
+- [x] Setup ESLint configuration
+- [x] Create basic `README.md`
 
 ## Phase 2: Google OAuth & API Client
 
@@ -74,4 +76,3 @@
 - [ ] Add request logging
 - [ ] Add input sanitization
 - [ ] Support for multiple users (if needed)
-

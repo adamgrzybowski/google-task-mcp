@@ -1,19 +1,53 @@
-# MCP Google Tasks – System Architecture
+# Google Tasks MCP Server
 
-## 1. System Purpose
+A Model Context Protocol (MCP) server that enables integration with Google Tasks API, allowing you to create and manage tasks from MCP clients like ChatGPT.
 
-The goal of the system is to create a **custom, independent MCP server** that enables:
+## Features
 
-- creating tasks in **Google Tasks**,
-- invoking these actions from the **native ChatGPT application** (and other MCP clients).
+- List Google Tasks task lists
+- Create new tasks in Google Tasks
+- OAuth 2.0 authentication with automatic token refresh
+- MCP protocol compliance
 
-The system runs on **Bun** and uses **stdio transport** for MCP communication.
+## Prerequisites
 
----
+- [Bun](https://bun.sh) runtime (v1.x or later)
+- Google Cloud Project with Tasks API enabled
+- OAuth 2.0 credentials (Client ID, Client Secret, Refresh Token)
 
-## 2. System Architecture
+## Installation
 
-### 2.1. Data Flow Diagram
+1. Clone this repository
+2. Install dependencies:
+
+```bash
+bun install
+```
+
+3. Copy `.env.example` to `.env` and fill in your Google OAuth credentials:
+
+```bash
+cp .env.example .env
+```
+
+4. Configure your `.env` file with:
+   - `GOOGLE_CLIENT_ID` - Your Google OAuth Client ID
+   - `GOOGLE_CLIENT_SECRET` - Your Google OAuth Client Secret
+   - `GOOGLE_REFRESH_TOKEN` - Your OAuth Refresh Token
+
+## Usage
+
+Run the MCP server:
+
+```bash
+bun run dev
+```
+
+The server uses stdio transport for MCP communication and can be configured in MCP clients like ChatGPT.
+
+## Architecture
+
+### Data Flow
 
 ```
 ┌─────────────────┐
@@ -53,71 +87,14 @@ The system runs on **Bun** and uses **stdio transport** for MCP communication.
 └─────────────────────────┘
 ```
 
-### 2.2. System Components
+### System Components
 
-#### **MCP Protocol Handler**
+- **MCP Protocol Handler**: Handles MCP protocol-compliant communication, routes requests, registers tools, handles JSON-RPC over stdio
+- **Tool Handlers**: Implementations of task operations, each responsible for one action, return results in MCP format
+- **Google Tasks Client**: OAuth token management (refresh, in-memory storage), executes API requests, basic error handling
+- **OAuth Service**: OAuth 2.0 authorization flow, refresh token storage (in-memory), manual OAuth setup
 
-- Handles MCP protocol-compliant communication
-- Routes requests to appropriate tool handlers
-- Registers available tools
-- Handles JSON-RPC over stdio
-
-#### **Tool Handlers**
-
-- Implementations of task operations
-- Each handler is responsible for one action
-- Return results in MCP format
-
-#### **Google Tasks Client**
-
-- OAuth token management (refresh, in-memory storage)
-- Executes requests to Google Tasks API
-- Basic error handling
-
-#### **OAuth Service**
-
-- OAuth 2.0 authorization flow
-- Refresh token storage (in-memory)
-- Manual OAuth setup (user provides tokens)
-
----
-
-## 3. Project Structure
-
-### 3.1. Directory Structure
-
-```
-google-task-mcp/
-├── src/
-│   ├── index.ts
-│   ├── mcp/
-│   │   ├── tools/
-│   │   │   ├── tasklists.ts
-│   │   │   └── tasks.ts
-│   │   └── types.ts
-│   ├── google/
-│   │   ├── client.ts
-│   │   ├── oauth.ts
-│   │   └── types.ts
-│   └── utils/
-│       └── errors.ts
-├── package.json
-├── tsconfig.json
-├── .env.example
-└── README.md
-```
-
----
-
-## 4. Data Models
-
-- MCP tools defined with JSON Schema
-- Google Tasks API types (TaskList, Task)
-- Internal parameter types for tool handlers
-
----
-
-## 5. Operation Flow
+### Operation Flow
 
 1. MCP Client sends tool call request
 2. MCP Protocol Handler routes to appropriate tool handler
@@ -125,49 +102,52 @@ google-task-mcp/
 4. Google Tasks Client manages OAuth tokens and makes API calls
 5. Response flows back through the chain to MCP Client
 
----
+## Project Structure
 
-## 6. Technology Stack
+```
+google-task-mcp/
+├── src/
+│   ├── index.ts              # MCP server entry point
+│   ├── mcp/
+│   │   ├── tools/            # MCP tool handlers
+│   │   │   ├── tasklists.ts
+│   │   │   └── tasks.ts
+│   │   └── types.ts          # MCP type definitions
+│   ├── google/
+│   │   ├── client.ts         # Google Tasks API client
+│   │   ├── oauth.ts          # OAuth token management
+│   │   └── types.ts          # Google API types
+│   └── utils/
+│       └── errors.ts         # Error utilities
+├── package.json
+├── tsconfig.json
+├── .env.example
+└── README.md
+```
 
-### Core
+## Technology Stack
 
 - **Runtime**: Bun (v1.x)
 - **Language**: TypeScript
 - **Protocol**: MCP (Model Context Protocol)
+- **Libraries**: `@modelcontextprotocol/sdk`, `googleapis`
 
-### Libraries
-
-- `@modelcontextprotocol/sdk` - MCP SDK
-- `googleapis` - Google API client
-
----
-
-## 7. Configuration
-
-Environment variables:
-
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `GOOGLE_REFRESH_TOKEN` (user provides after OAuth setup)
-
----
-
-## 8. MCP Interface (Tools)
+## MCP Interface (Tools)
 
 - **tasklists_list** (Read): Returns list of user's task lists
 - **tasks_create** (Write): Creates a new task with `{ title, notes?, due?, listId? }`
 
----
-
-## 9. Security
+## Security
 
 - OAuth 2.0 with scope limited to Google Tasks
 - Refresh token stored in-memory (user provides via env var)
 - Tokens **never reach the LLM**
 - Basic input validation with length limits
 
----
+## Development
 
-## 10. Deployment
+Built with Bun, TypeScript, and the MCP SDK. The server uses stdio transport for MCP communication.
 
-Run locally with `bun run dev`. The server uses stdio transport for MCP communication.
+## License
+
+Private project
