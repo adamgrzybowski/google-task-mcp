@@ -34,24 +34,21 @@
 
 ## Phase 4: Tool Handlers
 
-- [ ] Create `src/mcp/tools/tasklists.ts`
-  - [ ] Implement `tasklists_list` tool handler
-  - [ ] Define JSON Schema for tool
-  - [ ] Add parameter validation
-  - [ ] Return MCP-formatted response
-- [ ] Create `src/mcp/tools/tasks.ts`
-  - [ ] Implement `tasks_create` tool handler
-  - [ ] Define JSON Schema for tool
-  - [ ] Add parameter validation (title, notes, due, listId)
-  - [ ] Add input length limits
-  - [ ] Return MCP-formatted response
-- [ ] Register tools in `src/index.ts`
+- [x] Create `src/mcp/tools/tasklists.ts` - `tasklists_list` tool
+- [x] Create `src/mcp/tools/task_create.ts` - `task_create` tool
+- [x] Create `src/mcp/tools/tasks_list.ts` - `tasks_list` tool
+- [x] Create `src/mcp/tools/task_update.ts` - `task_update` tool
+- [x] Create `src/mcp/tools/task_delete.ts` - `task_delete` tool
+- [x] Register tools in `src/index.ts`
 
 ## Phase 5: Integration & Testing
 
-- [ ] Connect tool handlers to Google Tasks Client
+- [x] Connect tool handlers to Google Tasks Client
 - [ ] Test `tasklists_list` tool end-to-end
-- [ ] Test `tasks_create` tool end-to-end
+- [ ] Test `task_create` tool end-to-end
+- [ ] Test `tasks_list` tool end-to-end
+- [ ] Test `task_update` tool end-to-end
+- [ ] Test `task_delete` tool end-to-end
 - [ ] Handle error cases gracefully
 - [ ] Test OAuth token refresh flow
 - [ ] Verify MCP protocol compliance
@@ -67,9 +64,7 @@
 
 ## Future Enhancements (Post-MVP)
 
-- [ ] Add `tasks_list` tool
-- [ ] Add `tasks_complete` tool
-- [ ] Add `tasks_delete` tool
+- [ ] Add `tasks_complete` tool (or use `task_update` with status='completed')
 - [ ] Improve error messages
 - [ ] Add request logging
 - [ ] Add input sanitization

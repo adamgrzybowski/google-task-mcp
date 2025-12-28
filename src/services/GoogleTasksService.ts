@@ -37,6 +37,13 @@ export interface CreateTaskRequest {
   status?: 'needsAction' | 'completed';
 }
 
+export interface UpdateTaskRequest {
+  title?: string;
+  notes?: string;
+  due?: string; // RFC3339 timestamp
+  status?: 'needsAction' | 'completed';
+}
+
 export class GoogleTasksService {
   private auth: Auth.OAuth2Client;
   private tasksApi: ReturnType<typeof google.tasks>;
@@ -135,6 +142,130 @@ export class GoogleTasksService {
         throw new Error(`Failed to create task: ${error.message}`);
       }
       throw new Error('Failed to create task: Unknown error');
+    }
+  }
+
+  /**
+   * Get all tasks from the specified task list
+   * @param listId - The ID of the task list (defaults to '@default' for primary list)
+   */
+  async getTasks(listId: string = '@default'): Promise<GoogleTask[]> {
+    try {
+      const response = await this.tasksApi.tasks.list({
+        auth: this.auth,
+        tasklist: listId,
+      });
+
+      if (!response.data.items) {
+        return [];
+      }
+
+      return response.data.items.map((item) => ({
+        id: item.id ?? undefined,
+        title: item.title || '',
+        notes: item.notes ?? undefined,
+        status: item.status as 'needsAction' | 'completed' | undefined,
+        due: item.due ?? undefined,
+        completed: item.completed ?? undefined,
+        updated: item.updated ?? undefined,
+        selfLink: item.selfLink ?? undefined,
+        position: item.position ?? undefined,
+        kind: item.kind ?? undefined,
+        etag: item.etag ?? undefined,
+        parent: item.parent ?? undefined,
+        hidden: item.hidden ?? undefined,
+        deleted: item.deleted ?? undefined,
+      }));
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to fetch tasks: ${error.message}`);
+      }
+      throw new Error('Failed to fetch tasks: Unknown error');
+    }
+  }
+
+  /**
+   * Update an existing task in the specified task list
+   * @param listId - The ID of the task list
+   * @param taskId - The ID of the task to update
+   * @param updates - Task data to update
+   */
+  async updateTask(
+    listId: string,
+    taskId: string,
+    updates: UpdateTaskRequest
+  ): Promise<GoogleTask> {
+    try {
+      // Validate input
+      if (updates.title !== undefined) {
+        if (!updates.title || updates.title.trim().length === 0) {
+          throw new Error('Task title cannot be empty');
+        }
+        if (updates.title.length > 1024) {
+          throw new Error('Task title must be 1024 characters or less');
+        }
+      }
+
+      if (updates.notes !== undefined && updates.notes.length > 8192) {
+        throw new Error('Task notes must be 8192 characters or less');
+      }
+
+      const response = await this.tasksApi.tasks.update({
+        auth: this.auth,
+        tasklist: listId,
+        task: taskId,
+        requestBody: {
+          id: taskId,
+          title: updates.title?.trim(),
+          notes: updates.notes?.trim(),
+          due: updates.due,
+          status: updates.status,
+        },
+      });
+
+      const updatedTask = response.data;
+
+      return {
+        id: updatedTask.id ?? undefined,
+        title: updatedTask.title || '',
+        notes: updatedTask.notes ?? undefined,
+        status: updatedTask.status as 'needsAction' | 'completed' | undefined,
+        due: updatedTask.due ?? undefined,
+        completed: updatedTask.completed ?? undefined,
+        updated: updatedTask.updated ?? undefined,
+        selfLink: updatedTask.selfLink ?? undefined,
+        position: updatedTask.position ?? undefined,
+        kind: updatedTask.kind ?? undefined,
+        etag: updatedTask.etag ?? undefined,
+        parent: updatedTask.parent ?? undefined,
+        hidden: updatedTask.hidden ?? undefined,
+        deleted: updatedTask.deleted ?? undefined,
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to update task: ${error.message}`);
+      }
+      throw new Error('Failed to update task: Unknown error');
+    }
+  }
+
+  /**
+   * Delete a task from the specified task list
+   * @param listId - The ID of the task list
+   * @param taskId - The ID of the task to delete
+   */
+  async deleteTask(listId: string, taskId: string): Promise<void> {
+    try {
+      await this.tasksApi.tasks.delete({
+        auth: this.auth,
+        tasklist: listId,
+        task: taskId,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to delete task: ${error.message}`);
+      }
+      throw new Error('Failed to delete task: Unknown error');
     }
   }
 }

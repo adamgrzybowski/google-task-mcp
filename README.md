@@ -5,7 +5,10 @@ A Model Context Protocol (MCP) server that enables integration with Google Tasks
 ## Features
 
 - List Google Tasks task lists
+- List tasks from a task list
 - Create new tasks in Google Tasks
+- Update existing tasks (title, notes, due date, status)
+- Delete tasks from Google Tasks
 - OAuth 2.0 authentication with automatic token refresh
 - MCP protocol compliance
 
@@ -131,7 +134,10 @@ The server uses stdio transport for MCP communication and can be configured in M
 │  ┌───────────▼───────────────────────┐  │
 │  │  Tool Handlers                     │  │
 │  │  - tasklists_list                  │  │
-│  │  - tasks_create                    │  │
+│  │  - task_create                     │  │
+│  │  - tasks_list                      │  │
+│  │  - task_update                     │  │
+│  │  - task_delete                     │  │
 │  └───────────┬───────────────────────┘  │
 │              │                           │
 │  ┌───────────▼───────────────────────┐  │
@@ -170,14 +176,18 @@ google-task-mcp/
 ├── src/
 │   ├── index.ts              # MCP server entry point
 │   ├── mcp/
-│   │   ├── tools/            # MCP tool handlers
-│   │   │   ├── tasklists.ts
-│   │   │   └── tasks.ts
-│   │   └── types.ts          # MCP type definitions
+│   │   └── tools/            # MCP tool handlers
+│   │       ├── tasklists.ts
+│   │       ├── task_create.ts
+│   │       ├── tasks_list.ts
+│   │       ├── task_update.ts
+│   │       └── task_delete.ts
 │   ├── services/
 │   │   └── GoogleTasksService.ts  # Google Tasks API client & types
 │   └── utils/
-│       └── errors.ts         # Error utilities
+│       ├── errors.ts         # Error utilities
+│       ├── createSuccessResponse.ts
+│       └── createErrorResponse.ts
 ├── package.json
 ├── tsconfig.json
 ├── .env.example
@@ -194,7 +204,10 @@ google-task-mcp/
 ## MCP Interface (Tools)
 
 - **tasklists_list** (Read): Returns list of user's task lists
-- **tasks_create** (Write): Creates a new task with `{ title, notes?, due?, listId? }`
+- **task_create** (Write): Creates a new task with `{ title, notes?, due?, listId? }`
+- **tasks_list** (Read): Returns list of tasks from a specified task list with `{ listId? }`
+- **task_update** (Write): Updates an existing task with `{ listId, taskId, title?, notes?, due?, status? }`
+- **task_delete** (Write): Deletes a task with `{ listId, taskId }`
 
 ## Security
 
