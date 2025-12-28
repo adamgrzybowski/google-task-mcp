@@ -116,7 +116,7 @@ bun run server:stdio
 bun run server:http
 ```
 
-The HTTP server runs on port `21184` by default. You can change it by setting the `PORT` environment variable:
+The HTTP server runs on port `20187` by default. You can change it by setting the `PORT` environment variable:
 
 ```bash
 PORT=3000 bun run server:http

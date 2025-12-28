@@ -12,7 +12,7 @@
  *   HOST=localhost PORT=3000 bun run server:http
  *
  * Default:
- *   - Port: 21184
+ *   - Port: 20187
  *   - Host: :: (IPv6 dual-stack, also accepts IPv4)
  */
 
@@ -28,7 +28,7 @@ import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/
 import { createMcpServer, SERVER_INFO } from './server-setup.js';
 
 async function main() {
-  const port = parseInt(process.env.PORT || '21184', 10);
+  const port = parseInt(process.env.PORT || '20187', 10);
   const host = process.env.HOST || '::';
 
   // Map to track server+transport pairs by session ID
