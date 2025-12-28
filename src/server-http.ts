@@ -31,15 +31,15 @@ async function main() {
   const port = parseInt(process.env.PORT || '21184', 10);
   const host = process.env.HOST || '::';
 
-  // Create a single MCP server instance that will be shared across all sessions
-  const { server: mcpServer } = createMcpServer();
-
-  // Map to track transports by session ID
-  // Each session gets its own transport instance, but shares the same MCP server
-  // Based on the SDK example: ssePollingExample.js
-  const transports = new Map<
+  // Map to track server+transport pairs by session ID
+  // Each session gets its own server AND transport instance
+  // This is necessary because McpServer can only be connected to ONE transport at a time
+  const sessions = new Map<
     string,
-    WebStandardStreamableHTTPServerTransport
+    {
+      server: ReturnType<typeof createMcpServer>['server'];
+      transport: WebStandardStreamableHTTPServerTransport;
+    }
   >();
 
   // Create Bun HTTP server - transport handles all MCP requests automatically
@@ -51,36 +51,48 @@ async function main() {
       // Extract session ID from request headers if present
       const sessionId = req.headers.get('mcp-session-id');
 
-      // Reuse existing transport or create new one
-      // Based on the SDK example: ssePollingExample.js
-      let transport = sessionId ? transports.get(sessionId) : undefined;
+      // Log incoming request for debugging
+      console.error(
+        `[HTTP] ${req.method} request, sessionId: ${sessionId ?? 'none'}, sessions: ${sessions.size}`
+      );
 
-      if (!transport) {
-        // Create new transport for new session
-        transport = new WebStandardStreamableHTTPServerTransport({
+      // Reuse existing session or create new one
+      let session = sessionId ? sessions.get(sessionId) : undefined;
+
+      if (!session) {
+        console.error(`[HTTP] Creating new session (server + transport)`);
+
+        // Create new server AND transport for new session
+        // McpServer can only be connected to ONE transport, so each session needs its own server
+        const { server } = createMcpServer();
+        const transport = new WebStandardStreamableHTTPServerTransport({
           sessionIdGenerator: () => crypto.randomUUID(),
           onsessioninitialized: (id) => {
             console.error(`[MCP] Session initialized: ${id}`);
-            transports.set(id, transport!);
+            sessions.set(id, { server, transport });
           },
           onsessionclosed: async (id) => {
             console.error(`[MCP] Session closed: ${id}`);
-            const t = transports.get(id);
-            if (t) {
+            const s = sessions.get(id);
+            if (s) {
               try {
-                await t.close();
+                await s.transport.close();
+                await s.server.close();
               } catch {
                 // Ignore errors during cleanup
               }
-              transports.delete(id);
+              sessions.delete(id);
             }
           },
         });
 
-        // Connect the MCP server to the transport
-        // The server can be connected to multiple transports simultaneously
-        await mcpServer.connect(transport);
+        // Connect the server to the transport
+        await server.connect(transport);
+
+        session = { server, transport };
       }
+
+      const { transport } = session;
 
       // Liberalize Accept header - add missing text/event-stream if only application/json is present
       // This allows clients that only send application/json to work

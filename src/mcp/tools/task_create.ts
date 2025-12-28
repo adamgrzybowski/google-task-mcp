@@ -63,6 +63,11 @@ export function createCreateTaskHandler(
     try {
       const { title, notes, due, listId } = args;
 
+      // Log to help debug duplicate task creation
+      console.error(
+        `[task_create] Creating task: "${title}" in list: ${listId ?? '@default'}`
+      );
+
       const task = await service.createTask(
         {
           title,
@@ -70,6 +75,10 @@ export function createCreateTaskHandler(
           due,
         },
         listId ?? '@default'
+      );
+
+      console.error(
+        `[task_create] Task created successfully: "${task.title}" (id: ${task.id})`
       );
 
       return createSuccessResponse({
@@ -96,4 +105,3 @@ export function createCreateTaskHandler(
     }
   };
 }
-
