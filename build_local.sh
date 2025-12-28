@@ -1,7 +1,7 @@
 #!/bin/bash
 
-image_name="${1:-google-task-mcp}"
-image_tag="${2:-latest}"
+image_name="google-task-mcp"
+image_tag="${1:-latest}"
 
 echo "Pulling latest changes from git repository..."
 
