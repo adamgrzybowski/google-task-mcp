@@ -1,0 +1,173 @@
+/**
+ * Shared server setup code for MCP Google Tasks Server
+ *
+ * This module contains the common setup logic used by both
+ * stdio (server-stdio.ts) and HTTP (server-http.ts) transports.
+ */
+
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
+import { GoogleTasksService } from './services/GoogleTasksService.js';
+import {
+  createTasklistsListHandler,
+  tasklistsListInputSchema,
+  tasklistsListOutputSchema,
+} from './mcp/tools/tasklists.js';
+import {
+  createCreateTaskHandler,
+  tasksCreateInputSchema,
+  tasksCreateOutputSchema,
+} from './mcp/tools/task_create.js';
+import {
+  createTasksListHandler,
+  tasksListInputSchema,
+  tasksListOutputSchema,
+} from './mcp/tools/tasks_list.js';
+import {
+  createTaskUpdateHandler,
+  tasksUpdateInputSchema,
+  tasksUpdateOutputSchema,
+} from './mcp/tools/task_update.js';
+import {
+  createTaskDeleteHandler,
+  tasksDeleteInputSchema,
+  tasksDeleteOutputSchema,
+} from './mcp/tools/task_delete.js';
+
+/**
+ * Server information
+ */
+export const SERVER_INFO: Implementation = {
+  name: 'google-task-mcp',
+  version: '0.1.0',
+};
+
+/**
+ * Load environment variables and create Google Tasks service
+ */
+export function createGoogleTasksService(): GoogleTasksService {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error(
+      'Missing required environment variables: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN'
+    );
+  }
+
+  return new GoogleTasksService(refreshToken, clientId, clientSecret);
+}
+
+/**
+ * Register all tools with the MCP server
+ */
+export function registerTools(
+  server: McpServer,
+  service: GoogleTasksService
+): void {
+  server.registerTool(
+    'tasklists_list',
+    {
+      title: 'List Task Lists',
+      description:
+        'Returns a list of all Google Tasks task lists for the authenticated user',
+      inputSchema: tasklistsListInputSchema,
+      outputSchema: tasklistsListOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: true,
+      },
+    },
+    createTasklistsListHandler(service)
+  );
+
+  server.registerTool(
+    'task_create',
+    {
+      title: 'Create Task',
+      description:
+        'Creates a new task in the specified Google Tasks list. If listId is not provided, uses the default list.',
+      inputSchema: tasksCreateInputSchema,
+      outputSchema: tasksCreateOutputSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+    },
+    createCreateTaskHandler(service)
+  );
+
+  server.registerTool(
+    'tasks_list',
+    {
+      title: 'List Tasks',
+      description:
+        'Returns a list of all tasks from the specified Google Tasks list. If listId is not provided, uses the default list.',
+      inputSchema: tasksListInputSchema,
+      outputSchema: tasksListOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: true,
+      },
+    },
+    createTasksListHandler(service)
+  );
+
+  server.registerTool(
+    'task_update',
+    {
+      title: 'Update Task',
+      description:
+        'Updates an existing task in the specified Google Tasks list. Only provided fields will be updated.',
+      inputSchema: tasksUpdateInputSchema,
+      outputSchema: tasksUpdateOutputSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+    },
+    createTaskUpdateHandler(service)
+  );
+
+  server.registerTool(
+    'task_delete',
+    {
+      title: 'Delete Task',
+      description:
+        'Deletes a task from the specified Google Tasks list. This operation permanently removes the task.',
+      inputSchema: tasksDeleteInputSchema,
+      outputSchema: tasksDeleteOutputSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+    },
+    createTaskDeleteHandler(service)
+  );
+}
+
+/**
+ * Create and configure an MCP server instance
+ */
+export function createMcpServer(): {
+  server: McpServer;
+  service: GoogleTasksService;
+} {
+  const service = createGoogleTasksService();
+  const server = new McpServer(SERVER_INFO, {
+    capabilities: {
+      tools: {},
+    },
+  });
+
+  registerTools(server, service);
+
+  return { server, service };
+}

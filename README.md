@@ -102,13 +102,55 @@ This will verify that your OAuth credentials are correct and that you can succes
 
 ### Running the MCP Server
 
-Run the MCP server:
+You can run the server in two modes:
+
+**Stdio transport (for MCP clients like Claude Desktop):**
 
 ```bash
-bun run dev
+bun run server:stdio
 ```
 
-The server uses stdio transport for MCP communication and can be configured in MCP clients like ChatGPT.
+**HTTP transport (for web applications/API access):**
+
+```bash
+bun run server:http
+```
+
+The HTTP server runs on port `21184` by default. You can change it by setting the `PORT` environment variable:
+
+```bash
+PORT=3000 bun run server:http
+```
+
+You can also set the hostname with `HOST`:
+
+```bash
+HOST=localhost PORT=3000 bun run server:http
+```
+
+The stdio server uses stdio transport for MCP communication and can be configured in MCP clients like Claude Desktop.
+
+### Configuring MCP Clients
+
+**For Claude Desktop**, add this to your MCP configuration file (usually `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+
+```json
+{
+  "mcpServers": {
+    "google-tasks": {
+      "command": "bun",
+      "args": ["run", "src/server-stdio.ts"],
+      "cwd": "/Users/adamgrzybowski/private/google-task-mcp"
+    }
+  }
+}
+```
+
+**Important:**
+
+- Use `"command": "bun"` (NOT `"node"`)
+- Make sure the `cwd` path points to your project directory
+- After changing the config, restart Claude Desktop
 
 ## Architecture
 
@@ -174,7 +216,9 @@ The server uses stdio transport for MCP communication and can be configured in M
 ```
 google-task-mcp/
 ├── src/
-│   ├── index.ts              # MCP server entry point
+│   ├── server-stdio.ts        # MCP server with stdio transport
+│   ├── server-http.ts         # MCP server with HTTP transport
+│   ├── server-setup.ts        # Shared server setup code
 │   ├── mcp/
 │   │   └── tools/            # MCP tool handlers
 │   │       ├── tasklists.ts
@@ -216,9 +260,18 @@ google-task-mcp/
 - Tokens **never reach the LLM**
 - Basic input validation with length limits
 
+## HTTP Server Endpoints
+
+When running the HTTP server (`bun run server:http`), the following endpoints are available:
+
+- **`GET /`** - MCP protocol endpoint (SSE stream)
+- **`POST /`** - MCP protocol endpoint (JSON-RPC)
+
+The HTTP server uses the official MCP SDK `WebStandardStreamableHTTPServerTransport`, which handles all MCP protocol communication automatically.
+
 ## Development
 
-Built with Bun, TypeScript, and the MCP SDK. The server uses stdio transport for MCP communication.
+Built with Bun, TypeScript, and the MCP SDK. The server supports both stdio and HTTP transports for MCP communication.
 
 ## License
 

@@ -268,4 +268,24 @@ export class GoogleTasksService {
       throw new Error('Failed to delete task: Unknown error');
     }
   }
+
+  /**
+   * Check if the service can connect to Google Tasks API
+   * This is useful for health checks
+   */
+  async checkConnection(): Promise<{ connected: boolean; error?: string }> {
+    try {
+      // Try to fetch task lists as a lightweight connection test
+      await this.tasksApi.tasklists.list({
+        auth: this.auth,
+        maxResults: 1,
+      });
+      return { connected: true };
+    } catch (error) {
+      return {
+        connected: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
 }

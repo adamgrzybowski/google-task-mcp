@@ -1,11 +1,11 @@
 {
   "name": "google-task-mcp",
-  "module": "src/index.ts",
+  "module": "src/server-stdio.ts",
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun run src/index.ts",
-    "start": "bun run src/index.ts",
+    "server:stdio": "bun run src/server-stdio.ts",
+    "server:http": "bun run src/server-http.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

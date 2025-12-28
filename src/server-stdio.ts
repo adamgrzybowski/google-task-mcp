@@ -1,18 +1,17 @@
 #!/usr/bin/env bun
 
 /**
- * MCP Server Entry Point
+ * MCP Server with stdio transport
  *
- * This is the main entry point for the Google Tasks MCP server.
- * It initializes the MCP server with stdio transport and sets up
- * the basic server structure.
+ * This server uses stdio transport for MCP communication.
+ * It is designed to be used by MCP clients that launch it as a subprocess.
  */
 
 // Ensure we're running with Bun, not Node.js
 if (typeof Bun === 'undefined') {
   console.error('❌ Error: This server requires Bun runtime.');
-  console.error('   Please run with: bun run src/index.ts');
-  console.error('   Or use: bun run dev');
+  console.error('   Please run with: bun run server:stdio');
+  console.error('   Or use: bun run src/server-stdio.ts');
   process.exit(1);
 }
 
