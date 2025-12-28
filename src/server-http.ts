@@ -47,6 +47,28 @@ async function main() {
     hostname: host,
     port: port,
     fetch(req) {
+      // Liberalize Accept header - add missing text/event-stream if only application/json is present
+      // This allows clients that only send application/json to work
+      const acceptHeader = req.headers.get('Accept');
+      if (
+        acceptHeader &&
+        acceptHeader.includes('application/json') &&
+        !acceptHeader.includes('text/event-stream')
+      ) {
+        // Clone request and add missing Accept header
+        const newHeaders = new Headers(req.headers);
+        newHeaders.set('Accept', `${acceptHeader}, text/event-stream`);
+
+        // Create new request with updated headers
+        const modifiedReq = new Request(req.url, {
+          method: req.method,
+          headers: newHeaders,
+          body: req.body,
+        });
+
+        return transport.handleRequest(modifiedReq);
+      }
+
       // All requests go to MCP transport - it handles everything!
       return transport.handleRequest(req);
     },
