@@ -4,12 +4,15 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "dev": "bun run src/index.ts",
+    "start": "bun run src/index.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test:connection": "bun run test-connection.ts",
+    "test:lists": "bun run test-lists.ts",
     "get-oauth-token": "bun run get-oauth-token.ts"
   },
   "dependencies": {

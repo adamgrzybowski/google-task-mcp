@@ -43,7 +43,7 @@ import {
  */
 const SERVER_INFO: Implementation = {
   name: 'google-task-mcp',
-  version: '1.0.0',
+  version: '0.1.0',
 };
 
 /**
@@ -75,6 +75,10 @@ function registerTools(server: McpServer, service: GoogleTasksService): void {
         'Returns a list of all Google Tasks task lists for the authenticated user',
       inputSchema: tasklistsListInputSchema,
       outputSchema: tasklistsListOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: true,
+      },
     },
     createTasklistsListHandler(service)
   );
@@ -87,6 +91,12 @@ function registerTools(server: McpServer, service: GoogleTasksService): void {
         'Creates a new task in the specified Google Tasks list. If listId is not provided, uses the default list.',
       inputSchema: tasksCreateInputSchema,
       outputSchema: tasksCreateOutputSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false, // Additive operation - doesn't overwrite existing data
+        idempotentHint: false, // Can create duplicate tasks
+        openWorldHint: true, // Interacts with external Google Tasks API
+      },
     },
     createCreateTaskHandler(service)
   );
@@ -99,6 +109,10 @@ function registerTools(server: McpServer, service: GoogleTasksService): void {
         'Returns a list of all tasks from the specified Google Tasks list. If listId is not provided, uses the default list.',
       inputSchema: tasksListInputSchema,
       outputSchema: tasksListOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: true,
+      },
     },
     createTasksListHandler(service)
   );
@@ -111,6 +125,12 @@ function registerTools(server: McpServer, service: GoogleTasksService): void {
         'Updates an existing task in the specified Google Tasks list. Only provided fields will be updated.',
       inputSchema: tasksUpdateInputSchema,
       outputSchema: tasksUpdateOutputSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true, // Can overwrite existing task data
+        idempotentHint: true, // Can be called multiple times with same result
+        openWorldHint: true, // Interacts with external Google Tasks API
+      },
     },
     createTaskUpdateHandler(service)
   );
@@ -119,9 +139,16 @@ function registerTools(server: McpServer, service: GoogleTasksService): void {
     'task_delete',
     {
       title: 'Delete Task',
-      description: 'Deletes a task from the specified Google Tasks list.',
+      description:
+        'Deletes a task from the specified Google Tasks list. This operation permanently removes the task.',
       inputSchema: tasksDeleteInputSchema,
       outputSchema: tasksDeleteOutputSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true, // Permanently deletes data
+        idempotentHint: true, // Can be called multiple times (second call has no effect)
+        openWorldHint: true, // Interacts with external Google Tasks API
+      },
     },
     createTaskDeleteHandler(service)
   );

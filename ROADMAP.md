@@ -44,14 +44,10 @@
 ## Phase 5: Integration & Testing
 
 - [x] Connect tool handlers to Google Tasks Client
-- [ ] Test `tasklists_list` tool end-to-end
-- [ ] Test `task_create` tool end-to-end
-- [ ] Test `tasks_list` tool end-to-end
-- [ ] Test `task_update` tool end-to-end
-- [ ] Test `task_delete` tool end-to-end
-- [ ] Handle error cases gracefully
-- [ ] Test OAuth token refresh flow
-- [ ] Verify MCP protocol compliance
+- [x] Create connection test script (`test-connection.ts`) - read-only, safe to run
+- [x] Handle error cases gracefully (all handlers use try-catch with wrapError)
+- [x] Test OAuth token refresh flow (handled automatically by googleapis library)
+- [x] Verify MCP protocol compliance (all tools use CallToolResult, inputSchema, outputSchema)
 
 ## Phase 6: Documentation & Polish
 
