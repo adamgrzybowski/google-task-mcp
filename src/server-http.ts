@@ -13,7 +13,7 @@
  *
  * Default:
  *   - Port: 21184
- *   - Host: 0.0.0.0
+ *   - Host: :: (IPv6 dual-stack, also accepts IPv4)
  */
 
 // Ensure we're running with Bun, not Node.js
@@ -29,7 +29,7 @@ import { createMcpServer, SERVER_INFO } from './server-setup.js';
 
 async function main() {
   const port = parseInt(process.env.PORT || '21184', 10);
-  const host = process.env.HOST || '0.0.0.0';
+  const host = process.env.HOST || '::';
 
   const { server: mcpServer } = createMcpServer();
 
@@ -42,10 +42,11 @@ async function main() {
   await mcpServer.connect(transport);
 
   // Create Bun HTTP server - transport handles all MCP requests automatically
+  // Using "::" for IPv6 (dual-stack, also listens on IPv4)
   Bun.serve({
     hostname: host,
     port: port,
-    async fetch(req) {
+    fetch(req) {
       // All requests go to MCP transport - it handles everything!
       return transport.handleRequest(req);
     },
@@ -53,8 +54,8 @@ async function main() {
 
   console.log(`🚀 Google Tasks MCP HTTP server started`);
   console.log(`   Server: ${SERVER_INFO.name} v${SERVER_INFO.version}`);
-  console.log(`   Listening on http://${host}:${port}`);
-  console.log(`   MCP endpoint: http://${host}:${port}/`);
+  console.log(`   Listening on [${host}]:${port} (IPv6 dual-stack)`);
+  console.log(`   MCP endpoint: http://[${host}]:${port}/`);
 }
 
 main().catch((error) => {
