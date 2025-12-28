@@ -31,22 +31,57 @@ async function main() {
   const port = parseInt(process.env.PORT || '21184', 10);
   const host = process.env.HOST || '::';
 
+  // Create a single MCP server instance that will be shared across all sessions
   const { server: mcpServer } = createMcpServer();
 
-  // Create HTTP transport - it handles all MCP protocol requests
-  const transport = new WebStandardStreamableHTTPServerTransport({
-    sessionIdGenerator: () => crypto.randomUUID(),
-  });
-
-  // Connect MCP server to transport
-  await mcpServer.connect(transport);
+  // Map to track transports by session ID
+  // Each session gets its own transport instance, but shares the same MCP server
+  // Based on the SDK example: ssePollingExample.js
+  const transports = new Map<
+    string,
+    WebStandardStreamableHTTPServerTransport
+  >();
 
   // Create Bun HTTP server - transport handles all MCP requests automatically
   // Using "::" for IPv6 (dual-stack, also listens on IPv4)
   Bun.serve({
     hostname: host,
     port: port,
-    fetch(req) {
+    fetch: async (req) => {
+      // Extract session ID from request headers if present
+      const sessionId = req.headers.get('mcp-session-id');
+
+      // Reuse existing transport or create new one
+      // Based on the SDK example: ssePollingExample.js
+      let transport = sessionId ? transports.get(sessionId) : undefined;
+
+      if (!transport) {
+        // Create new transport for new session
+        transport = new WebStandardStreamableHTTPServerTransport({
+          sessionIdGenerator: () => crypto.randomUUID(),
+          onsessioninitialized: (id) => {
+            console.error(`[MCP] Session initialized: ${id}`);
+            transports.set(id, transport!);
+          },
+          onsessionclosed: async (id) => {
+            console.error(`[MCP] Session closed: ${id}`);
+            const t = transports.get(id);
+            if (t) {
+              try {
+                await t.close();
+              } catch {
+                // Ignore errors during cleanup
+              }
+              transports.delete(id);
+            }
+          },
+        });
+
+        // Connect the MCP server to the transport
+        // The server can be connected to multiple transports simultaneously
+        await mcpServer.connect(transport);
+      }
+
       // Liberalize Accept header - add missing text/event-stream if only application/json is present
       // This allows clients that only send application/json to work
       const acceptHeader = req.headers.get('Accept');
