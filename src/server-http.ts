@@ -37,7 +37,7 @@ import {
   handleOAuthRequest,
   createOAuthConfig,
   type OAuthConfig,
-} from './oauth/oauth-handlers.js';
+} from './oauth/index.js';
 
 /**
  * Extract access token from Authorization header
