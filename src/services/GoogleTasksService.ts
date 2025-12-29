@@ -114,6 +114,28 @@ export class GoogleTasksService {
   }
 
   /**
+   * Create service from environment variables
+   * Requires GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN
+   */
+  static fromEnv(): GoogleTasksService {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+
+    if (!clientId || !clientSecret || !refreshToken) {
+      throw new Error(
+        'Missing required environment variables: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN'
+      );
+    }
+
+    return GoogleTasksService.fromRefreshToken(
+      refreshToken,
+      clientId,
+      clientSecret
+    );
+  }
+
+  /**
    * Get all task lists for the authenticated user
    */
   async getTaskLists(): Promise<GoogleTaskList[]> {

@@ -1,38 +1,38 @@
 /**
- * Shared server setup code for MCP Google Tasks Server
+ * MCP Server factory
  *
- * This module contains the common setup logic used by both
- * stdio (server-stdio.ts) and HTTP (server-http.ts) transports.
+ * Creates and configures the MCP server with all tools registered.
+ * Used by both stdio and HTTP transports.
  */
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
-import { GoogleTasksService } from './services/GoogleTasksService.js';
+import { GoogleTasksService } from '../services/GoogleTasksService.js';
 import {
   createTasklistsListHandler,
   tasklistsListInputSchema,
   tasklistsListOutputSchema,
-} from './mcp/tools/tasklists.js';
+} from './tools/tasklists.js';
 import {
   createCreateTaskHandler,
   tasksCreateInputSchema,
   tasksCreateOutputSchema,
-} from './mcp/tools/task_create.js';
+} from './tools/task_create.js';
 import {
   createTasksListHandler,
   tasksListInputSchema,
   tasksListOutputSchema,
-} from './mcp/tools/tasks_list.js';
+} from './tools/tasks_list.js';
 import {
   createTaskUpdateHandler,
   tasksUpdateInputSchema,
   tasksUpdateOutputSchema,
-} from './mcp/tools/task_update.js';
+} from './tools/task_update.js';
 import {
   createTaskDeleteHandler,
   tasksDeleteInputSchema,
   tasksDeleteOutputSchema,
-} from './mcp/tools/task_delete.js';
+} from './tools/task_delete.js';
 
 /**
  * Server information
@@ -41,38 +41,6 @@ export const SERVER_INFO: Implementation = {
   name: 'google-task-mcp',
   version: '0.1.0',
 };
-
-/**
- * Load environment variables and create Google Tasks service
- * Uses refresh token from environment (for stdio mode)
- */
-export function createGoogleTasksService(): GoogleTasksService {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-
-  if (!clientId || !clientSecret || !refreshToken) {
-    throw new Error(
-      'Missing required environment variables: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN'
-    );
-  }
-
-  return GoogleTasksService.fromRefreshToken(
-    refreshToken,
-    clientId,
-    clientSecret
-  );
-}
-
-/**
- * Create Google Tasks service from access token
- * Used by HTTP server when OAuth token is provided in Authorization header
- */
-export function createGoogleTasksServiceFromAccessToken(
-  accessToken: string
-): GoogleTasksService {
-  return GoogleTasksService.fromAccessToken(accessToken);
-}
 
 /**
  * Register all tools with the MCP server
@@ -188,8 +156,8 @@ export function createMcpServer(options?: CreateMcpServerOptions): {
 } {
   // Create service based on options
   const service = options?.accessToken
-    ? createGoogleTasksServiceFromAccessToken(options.accessToken)
-    : createGoogleTasksService();
+    ? GoogleTasksService.fromAccessToken(options.accessToken)
+    : GoogleTasksService.fromEnv();
 
   const server = new McpServer(SERVER_INFO, {
     capabilities: {

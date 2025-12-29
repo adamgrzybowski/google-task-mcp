@@ -8,6 +8,7 @@ import { GoogleTasksService } from '../../services/GoogleTasksService.js';
 import { wrapError } from '../../utils/errors.js';
 import { createSuccessResponse } from '../../utils/createSuccessResponse.js';
 import { createErrorResponse } from '../../utils/createErrorResponse.js';
+import { taskSchema } from '../schemas/task.js';
 
 /**
  * Input schema for tasks_list tool
@@ -20,24 +21,7 @@ export const tasksListInputSchema = z.object({
  * Output schema for tasks_list tool
  */
 export const tasksListOutputSchema = z.object({
-  tasks: z.array(
-    z.object({
-      id: z.string().optional(),
-      title: z.string(),
-      notes: z.string().optional(),
-      status: z.enum(['needsAction', 'completed']).optional(),
-      due: z.string().optional(),
-      completed: z.string().optional(),
-      updated: z.string().optional(),
-      selfLink: z.string().optional(),
-      position: z.string().optional(),
-      kind: z.string().optional(),
-      etag: z.string().optional(),
-      parent: z.string().optional(),
-      hidden: z.boolean().optional(),
-      deleted: z.boolean().optional(),
-    })
-  ),
+  tasks: z.array(taskSchema),
 });
 
 /**
@@ -57,24 +41,7 @@ export function createTasksListHandler(
 
       console.error(`[tasks_list] Found ${tasks.length} tasks`);
 
-      return createSuccessResponse({
-        tasks: tasks.map((task) => ({
-          id: task.id,
-          title: task.title,
-          notes: task.notes,
-          status: task.status,
-          due: task.due,
-          completed: task.completed,
-          updated: task.updated,
-          selfLink: task.selfLink,
-          position: task.position,
-          kind: task.kind,
-          etag: task.etag,
-          parent: task.parent,
-          hidden: task.hidden,
-          deleted: task.deleted,
-        })),
-      });
+      return createSuccessResponse({ tasks });
     } catch (error) {
       console.error(`[tasks_list] Error fetching tasks:`, error);
       const wrappedError = wrapError(error);

@@ -16,7 +16,7 @@ if (typeof Bun === 'undefined') {
 }
 
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { createMcpServer, SERVER_INFO } from './server-setup.js';
+import { createMcpServer, SERVER_INFO } from './mcp/createMcpServer.js';
 
 /**
  * Main function to start the MCP server

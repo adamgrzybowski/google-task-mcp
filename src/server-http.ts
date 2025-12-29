@@ -32,7 +32,7 @@ if (typeof Bun === 'undefined') {
 }
 
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
-import { createMcpServer, SERVER_INFO } from './server-setup.js';
+import { createMcpServer, SERVER_INFO } from './mcp/createMcpServer.js';
 import {
   handleOAuthRequest,
   createOAuthConfig,
@@ -110,7 +110,9 @@ async function main() {
       if (oauthConfig) {
         const oauthResponse = await handleOAuthRequest(req, oauthConfig);
         if (oauthResponse) {
-          console.error(`[HTTP] → OAuth handler responded with ${oauthResponse.status}`);
+          console.error(
+            `[HTTP] → OAuth handler responded with ${oauthResponse.status}`
+          );
           return oauthResponse;
         }
       }

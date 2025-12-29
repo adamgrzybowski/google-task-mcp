@@ -8,6 +8,7 @@ import { GoogleTasksService } from '../../services/GoogleTasksService.js';
 import { wrapError } from '../../utils/errors.js';
 import { createSuccessResponse } from '../../utils/createSuccessResponse.js';
 import { createErrorResponse } from '../../utils/createErrorResponse.js';
+import { taskSchema, dueDateSchema } from '../schemas/task.js';
 
 /**
  * Input schema for tasks_create tool
@@ -21,13 +22,7 @@ export const tasksCreateInputSchema = z.object({
     .string()
     .max(8192, 'Task notes must be 8192 characters or less')
     .optional(),
-  due: z
-    .string()
-    .regex(
-      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/,
-      'Due date must be in RFC3339 format (e.g., 2024-12-31T23:59:59Z)'
-    )
-    .optional(),
+  due: dueDateSchema,
   listId: z.string().min(1, 'List ID cannot be empty').optional(),
 });
 
@@ -35,22 +30,7 @@ export const tasksCreateInputSchema = z.object({
  * Output schema for tasks_create tool
  */
 export const tasksCreateOutputSchema = z.object({
-  task: z.object({
-    id: z.string().optional(),
-    title: z.string(),
-    notes: z.string().optional(),
-    status: z.enum(['needsAction', 'completed']).optional(),
-    due: z.string().optional(),
-    completed: z.string().optional(),
-    updated: z.string().optional(),
-    selfLink: z.string().optional(),
-    position: z.string().optional(),
-    kind: z.string().optional(),
-    etag: z.string().optional(),
-    parent: z.string().optional(),
-    hidden: z.boolean().optional(),
-    deleted: z.boolean().optional(),
-  }),
+  task: taskSchema,
 });
 
 /**
@@ -110,24 +90,7 @@ export function createCreateTaskHandler(
           `[task_create] Found existing task with same properties: "${matchingTask.title}" (id: ${matchingTask.id})`
         );
 
-        return createSuccessResponse({
-          task: {
-            id: matchingTask.id,
-            title: matchingTask.title,
-            notes: matchingTask.notes,
-            status: matchingTask.status,
-            due: matchingTask.due,
-            completed: matchingTask.completed,
-            updated: matchingTask.updated,
-            selfLink: matchingTask.selfLink,
-            position: matchingTask.position,
-            kind: matchingTask.kind,
-            etag: matchingTask.etag,
-            parent: matchingTask.parent,
-            hidden: matchingTask.hidden,
-            deleted: matchingTask.deleted,
-          },
-        });
+        return createSuccessResponse({ task: matchingTask });
       }
 
       // No matching task found, create a new one
@@ -144,24 +107,7 @@ export function createCreateTaskHandler(
         `[task_create] Task created successfully: "${task.title}" (id: ${task.id})`
       );
 
-      return createSuccessResponse({
-        task: {
-          id: task.id,
-          title: task.title,
-          notes: task.notes,
-          status: task.status,
-          due: task.due,
-          completed: task.completed,
-          updated: task.updated,
-          selfLink: task.selfLink,
-          position: task.position,
-          kind: task.kind,
-          etag: task.etag,
-          parent: task.parent,
-          hidden: task.hidden,
-          deleted: task.deleted,
-        },
-      });
+      return createSuccessResponse({ task });
     } catch (error) {
       const wrappedError = wrapError(error);
       return createErrorResponse(wrappedError.message);
