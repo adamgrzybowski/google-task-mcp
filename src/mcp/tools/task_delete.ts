@@ -26,7 +26,23 @@ export const tasksDeleteOutputSchema = z.object({
 });
 
 /**
+ * Checks if an error is a "not found" error (HTTP 404)
+ */
+function isNotFoundError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    return (
+      message.includes('404') ||
+      message.includes('not found') ||
+      message.includes('notfound')
+    );
+  }
+  return false;
+}
+
+/**
  * Creates the delete task tool handler
+ * Implements idempotency: if the task doesn't exist (already deleted), returns success
  */
 export function createTaskDeleteHandler(
   service: GoogleTasksService
@@ -41,9 +57,19 @@ export function createTaskDeleteHandler(
         message: `Task ${taskId} deleted successfully`,
       });
     } catch (error) {
+      // Idempotency: if task is already deleted (404), treat as success
+      if (isNotFoundError(error)) {
+        console.error(
+          `[task_delete] Task ${args.taskId} not found (already deleted), returning success`
+        );
+        return createSuccessResponse({
+          success: true,
+          message: `Task ${args.taskId} was already deleted`,
+        });
+      }
+
       const wrappedError = wrapError(error);
       return createErrorResponse(wrappedError.message);
     }
   };
 }
-

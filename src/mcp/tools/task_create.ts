@@ -54,7 +54,38 @@ export const tasksCreateOutputSchema = z.object({
 });
 
 /**
+ * Checks if two tasks match based on title, notes, and due date
+ */
+function tasksMatch(
+  existing: { title: string; notes?: string; due?: string },
+  requested: { title: string; notes?: string; due?: string }
+): boolean {
+  // Title must match exactly
+  if (existing.title !== requested.title) {
+    return false;
+  }
+
+  // Notes must match (both undefined/empty or same value)
+  const existingNotes = existing.notes || undefined;
+  const requestedNotes = requested.notes || undefined;
+  if (existingNotes !== requestedNotes) {
+    return false;
+  }
+
+  // Due date must match (both undefined or same value)
+  // Compare only the date part since times can vary
+  const existingDue = existing.due?.split('T')[0];
+  const requestedDue = requested.due?.split('T')[0];
+  if (existingDue !== requestedDue) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * Creates the create task tool handler
+ * Implements idempotency: if a task with the same title, notes, and due date exists, returns it instead of creating a duplicate
  */
 export function createCreateTaskHandler(
   service: GoogleTasksService
@@ -62,19 +93,51 @@ export function createCreateTaskHandler(
   return async (args) => {
     try {
       const { title, notes, due, listId } = args;
+      const targetListId = listId ?? '@default';
 
-      // Log to help debug duplicate task creation
       console.error(
-        `[task_create] Creating task: "${title}" in list: ${listId ?? '@default'}`
+        `[task_create] Request to create task: "${title}" in list: ${targetListId}`
       );
 
+      // Check for existing task with same properties (idempotency)
+      const existingTasks = await service.getTasks(targetListId);
+      const matchingTask = existingTasks.find((t) =>
+        tasksMatch(t, { title, notes, due })
+      );
+
+      if (matchingTask) {
+        console.error(
+          `[task_create] Found existing task with same properties: "${matchingTask.title}" (id: ${matchingTask.id})`
+        );
+
+        return createSuccessResponse({
+          task: {
+            id: matchingTask.id,
+            title: matchingTask.title,
+            notes: matchingTask.notes,
+            status: matchingTask.status,
+            due: matchingTask.due,
+            completed: matchingTask.completed,
+            updated: matchingTask.updated,
+            selfLink: matchingTask.selfLink,
+            position: matchingTask.position,
+            kind: matchingTask.kind,
+            etag: matchingTask.etag,
+            parent: matchingTask.parent,
+            hidden: matchingTask.hidden,
+            deleted: matchingTask.deleted,
+          },
+        });
+      }
+
+      // No matching task found, create a new one
       const task = await service.createTask(
         {
           title,
           notes,
           due,
         },
-        listId ?? '@default'
+        targetListId
       );
 
       console.error(
