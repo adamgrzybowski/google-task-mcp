@@ -93,10 +93,24 @@ async function main() {
     fetch: async (req) => {
       const url = new URL(req.url);
 
+      // Log ALL incoming requests
+      console.error(`\n[HTTP] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+      console.error(`[HTTP] ${req.method} ${url.pathname}${url.search}`);
+      console.error(`[HTTP] Headers:`);
+      for (const [key, value] of req.headers.entries()) {
+        // Don't log full Authorization token for security
+        if (key.toLowerCase() === 'authorization') {
+          console.error(`[HTTP]   ${key}: ${value.substring(0, 20)}...`);
+        } else {
+          console.error(`[HTTP]   ${key}: ${value}`);
+        }
+      }
+
       // Handle OAuth requests first (if enabled)
       if (oauthConfig) {
         const oauthResponse = await handleOAuthRequest(req, oauthConfig);
         if (oauthResponse) {
+          console.error(`[HTTP] → OAuth handler responded with ${oauthResponse.status}`);
           return oauthResponse;
         }
       }
@@ -106,7 +120,7 @@ async function main() {
 
       // If OAuth is enabled, require access token for MCP requests
       if (oauthEnabled && !accessToken) {
-        console.error('[HTTP] Missing Authorization header (OAuth enabled)');
+        console.error(`[HTTP] ✗ 401 Unauthorized - no token provided`);
         return new Response(
           JSON.stringify({
             error: 'unauthorized',

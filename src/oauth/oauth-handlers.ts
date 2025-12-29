@@ -117,7 +117,9 @@ export function handleWellKnown(config: OAuthConfig): Response {
     scopes_supported: ['https://www.googleapis.com/auth/tasks'],
   };
 
+  console.error('[OAuth] ════════════════════════════════════════');
   console.error('[OAuth] Well-known metadata requested');
+  console.error('[OAuth] Returning:', JSON.stringify(metadata, null, 2));
   return jsonResponse(metadata);
 }
 
@@ -140,6 +142,13 @@ export function handleAuthorize(req: Request, config: OAuthConfig): Response {
   const url = new URL(req.url);
   const params = url.searchParams;
 
+  console.error('[OAuth] ════════════════════════════════════════');
+  console.error('[OAuth] /authorize request received');
+  console.error('[OAuth] All query params:');
+  for (const [key, value] of params.entries()) {
+    console.error(`[OAuth]   ${key}: ${value}`);
+  }
+
   const redirectUri = params.get('redirect_uri');
   const state = params.get('state');
   const codeChallenge = params.get('code_challenge');
@@ -147,15 +156,15 @@ export function handleAuthorize(req: Request, config: OAuthConfig): Response {
 
   // Validate required params
   if (!redirectUri) {
+    console.error('[OAuth] ✗ Missing redirect_uri');
     return jsonResponse({ error: 'missing_redirect_uri' }, 400);
   }
   if (!state) {
+    console.error('[OAuth] ✗ Missing state');
     return jsonResponse({ error: 'missing_state' }, 400);
   }
 
-  console.error(
-    `[OAuth] Authorize request, state: ${state}, redirect: ${redirectUri}`
-  );
+  console.error(`[OAuth] ✓ Valid params - state: ${state}`);
 
   // Store pending authorization
   const pendingAuth: PendingAuthorization = {
@@ -207,29 +216,41 @@ export function handleCallback(req: Request): Response {
   const url = new URL(req.url);
   const params = url.searchParams;
 
+  console.error('[OAuth] ════════════════════════════════════════');
+  console.error('[OAuth] /callback from Google received');
+  console.error('[OAuth] All query params:');
+  for (const [key, value] of params.entries()) {
+    if (key === 'code') {
+      console.error(`[OAuth]   ${key}: ${value.substring(0, 20)}...`);
+    } else {
+      console.error(`[OAuth]   ${key}: ${value}`);
+    }
+  }
+
   const googleCode = params.get('code');
   const state = params.get('state');
   const error = params.get('error');
 
   // Handle errors from Google
   if (error) {
-    console.error(`[OAuth] Google returned error: ${error}`);
+    console.error(`[OAuth] ✗ Google returned error: ${error}`);
     return new Response(`Authorization failed: ${error}`, { status: 400 });
   }
 
   if (!googleCode || !state) {
-    console.error('[OAuth] Missing code or state from Google');
+    console.error('[OAuth] ✗ Missing code or state from Google');
     return new Response('Missing code or state', { status: 400 });
   }
 
   // Find pending authorization
   const pendingAuth = pendingAuthorizations.get(state);
   if (!pendingAuth) {
-    console.error(`[OAuth] No pending authorization for state: ${state}`);
+    console.error(`[OAuth] ✗ No pending authorization for state: ${state}`);
+    console.error(`[OAuth]   Available states: ${Array.from(pendingAuthorizations.keys()).join(', ') || 'none'}`);
     return new Response('Invalid or expired state', { status: 400 });
   }
 
-  console.error(`[OAuth] Callback received, state: ${state}`);
+  console.error(`[OAuth] ✓ Found pending auth for state: ${state}`);
 
   // Store Google code and generate our own code for ChatGPT
   const ourCode = generateRandomString(32);
@@ -290,7 +311,17 @@ export async function handleToken(
 
   const grantType = body.grant_type;
 
-  console.error(`[OAuth] Token request, grant_type: ${grantType}`);
+  console.error('[OAuth] ════════════════════════════════════════');
+  console.error('[OAuth] /token request received');
+  console.error(`[OAuth] grant_type: ${grantType}`);
+  console.error('[OAuth] Body params:');
+  for (const [key, value] of Object.entries(body)) {
+    if (key === 'code' || key === 'refresh_token' || key === 'client_secret') {
+      console.error(`[OAuth]   ${key}: ${String(value).substring(0, 20)}...`);
+    } else {
+      console.error(`[OAuth]   ${key}: ${value}`);
+    }
+  }
 
   // Handle different grant types
   if (grantType === 'authorization_code') {
@@ -330,9 +361,13 @@ async function handleAuthorizationCodeGrant(
   );
 
   try {
+    console.error('[OAuth] Exchanging Google code for tokens...');
     const { tokens } = await oauth2Client.getToken(pendingAuth.googleCode);
 
-    console.error('[OAuth] Successfully exchanged code for tokens');
+    console.error('[OAuth] ✓ Successfully exchanged code for tokens');
+    console.error(`[OAuth]   access_token: ${tokens.access_token?.substring(0, 20)}...`);
+    console.error(`[OAuth]   refresh_token: ${tokens.refresh_token ? tokens.refresh_token.substring(0, 20) + '...' : 'none'}`);
+    console.error(`[OAuth]   expires_in: ${tokens.expiry_date ? Math.floor((tokens.expiry_date - Date.now()) / 1000) : 3600}s`);
 
     // Clean up
     codeToAuthorization.delete(code);
@@ -349,7 +384,7 @@ async function handleAuthorizationCodeGrant(
       scope: tokens.scope,
     });
   } catch (error) {
-    console.error('[OAuth] Failed to exchange code:', error);
+    console.error('[OAuth] ✗ Failed to exchange code:', error);
     return jsonResponse(
       {
         error: 'invalid_grant',
