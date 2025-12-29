@@ -38,6 +38,8 @@ export function createTasklistsListHandler(
 ): ToolCallback<typeof tasklistsListInputSchema> {
   return async () => {
     try {
+      console.error(`[tasklists_list] Fetching task lists`);
+
       const taskLists = await service.getTaskLists();
       const mappedLists = taskLists.map((list) => ({
         id: list.id,
@@ -48,8 +50,14 @@ export function createTasklistsListHandler(
         selfLink: list.selfLink,
       }));
 
+      console.error(
+        `[tasklists_list] Found ${mappedLists.length} lists:`,
+        mappedLists.map((l) => `"${l.title}" (${l.id})`).join(', ')
+      );
+
       return createSuccessResponse({ taskLists: mappedLists });
     } catch (error) {
+      console.error(`[tasklists_list] Error fetching task lists:`, error);
       const wrappedError = wrapError(error);
       return createErrorResponse(wrappedError.message);
     }

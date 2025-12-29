@@ -49,7 +49,13 @@ export function createTasksListHandler(
   return async (args) => {
     try {
       const { listId } = args;
-      const tasks = await service.getTasks(listId ?? '@default');
+      const targetListId = listId ?? '@default';
+
+      console.error(`[tasks_list] Fetching tasks from list: ${targetListId}`);
+
+      const tasks = await service.getTasks(targetListId);
+
+      console.error(`[tasks_list] Found ${tasks.length} tasks`);
 
       return createSuccessResponse({
         tasks: tasks.map((task) => ({
@@ -70,9 +76,9 @@ export function createTasksListHandler(
         })),
       });
     } catch (error) {
+      console.error(`[tasks_list] Error fetching tasks:`, error);
       const wrappedError = wrapError(error);
       return createErrorResponse(wrappedError.message);
     }
   };
 }
-

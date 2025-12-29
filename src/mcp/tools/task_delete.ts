@@ -50,7 +50,14 @@ export function createTaskDeleteHandler(
   return async (args) => {
     try {
       const { listId, taskId } = args;
+
+      console.error(
+        `[task_delete] Deleting task ${taskId} from list ${listId}`
+      );
+
       await service.deleteTask(listId, taskId);
+
+      console.error(`[task_delete] Task ${taskId} deleted successfully`);
 
       return createSuccessResponse({
         success: true,
@@ -68,6 +75,7 @@ export function createTaskDeleteHandler(
         });
       }
 
+      console.error(`[task_delete] Error deleting task ${args.taskId}:`, error);
       const wrappedError = wrapError(error);
       return createErrorResponse(wrappedError.message);
     }

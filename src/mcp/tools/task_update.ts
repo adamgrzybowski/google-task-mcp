@@ -66,12 +66,21 @@ export function createTaskUpdateHandler(
     try {
       const { listId, taskId, title, notes, due, status } = args;
 
+      console.error(
+        `[task_update] Updating task ${taskId} in list ${listId}:`,
+        JSON.stringify({ title, notes, due, status })
+      );
+
       const task = await service.updateTask(listId, taskId, {
         title,
         notes,
         due,
         status,
       });
+
+      console.error(
+        `[task_update] Task updated successfully: "${task.title}" (id: ${task.id})`
+      );
 
       return createSuccessResponse({
         task: {
@@ -92,9 +101,9 @@ export function createTaskUpdateHandler(
         },
       });
     } catch (error) {
+      console.error(`[task_update] Error updating task ${args.taskId}:`, error);
       const wrappedError = wrapError(error);
       return createErrorResponse(wrappedError.message);
     }
   };
 }
-
