@@ -53,6 +53,16 @@ const pendingAuthorizations = new Map<string, PendingAuthorization>();
 // Map: ourCode -> PendingAuthorization (for /token lookup)
 const codeToAuthorization = new Map<string, PendingAuthorization>();
 
+// Map: client_id -> client metadata (for Dynamic Client Registration)
+interface RegisteredClient {
+  client_id: string;
+  client_secret: string;
+  redirect_uris: string[];
+  client_name?: string;
+  created_at: number;
+}
+const registeredClients = new Map<string, RegisteredClient>();
+
 // Cleanup old authorizations every 10 minutes
 const AUTHORIZATION_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -107,9 +117,10 @@ export function handleWellKnown(config: OAuthConfig): Response {
     issuer: config.serverBaseUrl,
     authorization_endpoint: `${config.serverBaseUrl}/authorize`,
     token_endpoint: `${config.serverBaseUrl}/token`,
+    registration_endpoint: `${config.serverBaseUrl}/register`, // DCR endpoint
     response_types_supported: ['code'],
     grant_types_supported: ['authorization_code', 'refresh_token'],
-    code_challenge_methods_supported: ['S256', 'plain'],
+    code_challenge_methods_supported: ['S256'], // ChatGPT requires S256
     token_endpoint_auth_methods_supported: [
       'client_secret_post',
       'client_secret_basic',
@@ -118,7 +129,7 @@ export function handleWellKnown(config: OAuthConfig): Response {
   };
 
   console.error('[OAuth] ════════════════════════════════════════');
-  console.error('[OAuth] Well-known metadata requested');
+  console.error('[OAuth] Well-known oauth-authorization-server requested');
   console.error('[OAuth] Returning:', JSON.stringify(metadata, null, 2));
   return jsonResponse(metadata);
 }
@@ -484,12 +495,51 @@ export async function handleOAuthRequest(
   const url = new URL(req.url);
   const pathname = url.pathname;
 
-  // OAuth discovery
+  // OAuth discovery (RFC 8414)
   if (
     pathname === '/.well-known/oauth-authorization-server' &&
     req.method === 'GET'
   ) {
     return handleWellKnown(config);
+  }
+
+  // OAuth Protected Resource Metadata (RFC 9728)
+  // ChatGPT checks this to understand the resource server
+  if (
+    pathname === '/.well-known/oauth-protected-resource' &&
+    req.method === 'GET'
+  ) {
+    const metadata = {
+      resource: config.serverBaseUrl,
+      authorization_servers: [config.serverBaseUrl], // We are our own auth server
+      scopes_supported: ['https://www.googleapis.com/auth/tasks'],
+      resource_documentation: 'https://developers.google.com/tasks',
+    };
+    console.error('[OAuth] ════════════════════════════════════════');
+    console.error('[OAuth] Protected resource metadata requested');
+    console.error('[OAuth] Returning:', JSON.stringify(metadata, null, 2));
+    return jsonResponse(metadata);
+  }
+
+  // OpenID Connect Discovery (some clients check this too)
+  if (
+    pathname === '/.well-known/openid-configuration' &&
+    req.method === 'GET'
+  ) {
+    const metadata = {
+      issuer: config.serverBaseUrl,
+      authorization_endpoint: `${config.serverBaseUrl}/authorize`,
+      token_endpoint: `${config.serverBaseUrl}/token`,
+      registration_endpoint: `${config.serverBaseUrl}/register`,
+      response_types_supported: ['code'],
+      grant_types_supported: ['authorization_code', 'refresh_token'],
+      code_challenge_methods_supported: ['S256'],
+      scopes_supported: ['https://www.googleapis.com/auth/tasks'],
+    };
+    console.error('[OAuth] ════════════════════════════════════════');
+    console.error('[OAuth] OpenID configuration requested');
+    console.error('[OAuth] Returning:', JSON.stringify(metadata, null, 2));
+    return jsonResponse(metadata);
   }
 
   // Authorization endpoint
@@ -507,6 +557,69 @@ export async function handleOAuthRequest(
     return handleToken(req, config);
   }
 
+  // Dynamic Client Registration (RFC 7591)
+  if (pathname === '/register' && req.method === 'POST') {
+    return handleClientRegistration(req, config);
+  }
+
   // Not an OAuth request
   return null;
+}
+
+/**
+ * POST /register
+ *
+ * Dynamic Client Registration (RFC 7591)
+ * ChatGPT registers itself as an OAuth client before starting the auth flow.
+ */
+async function handleClientRegistration(
+  req: Request,
+  config: OAuthConfig
+): Promise<Response> {
+  console.error('[OAuth] ════════════════════════════════════════');
+  console.error('[OAuth] /register - Dynamic Client Registration');
+
+  let body: Record<string, unknown> = {};
+  try {
+    body = (await req.json()) as Record<string, unknown>;
+  } catch {
+    return jsonResponse({ error: 'invalid_request', error_description: 'Invalid JSON body' }, 400);
+  }
+
+  console.error('[OAuth] Registration request:', JSON.stringify(body, null, 2));
+
+  const redirectUris = body.redirect_uris as string[] | undefined;
+  const clientName = body.client_name as string | undefined;
+
+  if (!redirectUris || !Array.isArray(redirectUris) || redirectUris.length === 0) {
+    console.error('[OAuth] ✗ Missing redirect_uris');
+    return jsonResponse({ error: 'invalid_request', error_description: 'redirect_uris required' }, 400);
+  }
+
+  // Generate client credentials
+  const clientId = `chatgpt_${generateRandomString(16)}`;
+  const clientSecret = generateRandomString(32);
+
+  const client: RegisteredClient = {
+    client_id: clientId,
+    client_secret: clientSecret,
+    redirect_uris: redirectUris,
+    client_name: clientName,
+    created_at: Date.now(),
+  };
+
+  registeredClients.set(clientId, client);
+
+  console.error(`[OAuth] ✓ Registered client: ${clientId}`);
+  console.error(`[OAuth]   redirect_uris: ${redirectUris.join(', ')}`);
+
+  return jsonResponse({
+    client_id: clientId,
+    client_secret: clientSecret,
+    client_id_issued_at: Math.floor(Date.now() / 1000),
+    client_secret_expires_at: 0, // Never expires
+    redirect_uris: redirectUris,
+    client_name: clientName,
+    token_endpoint_auth_method: 'client_secret_post',
+  }, 201);
 }

@@ -121,6 +121,10 @@ async function main() {
       // If OAuth is enabled, require access token for MCP requests
       if (oauthEnabled && !accessToken) {
         console.error(`[HTTP] ✗ 401 Unauthorized - no token provided`);
+        // Return 401 with WWW-Authenticate header per RFC 9728 / OpenAI spec
+        // This tells ChatGPT where to find the protected resource metadata
+        const wwwAuth = `Bearer resource_metadata="${oauthConfig?.serverBaseUrl}/.well-known/oauth-protected-resource", scope="https://www.googleapis.com/auth/tasks"`;
+        console.error(`[HTTP]   WWW-Authenticate: ${wwwAuth}`);
         return new Response(
           JSON.stringify({
             error: 'unauthorized',
@@ -128,7 +132,10 @@ async function main() {
           }),
           {
             status: 401,
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'WWW-Authenticate': wwwAuth,
+            },
           }
         );
       }
