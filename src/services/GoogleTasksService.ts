@@ -44,16 +44,73 @@ export interface UpdateTaskRequest {
   status?: 'needsAction' | 'completed';
 }
 
+/**
+ * Options for creating GoogleTasksService
+ */
+export type GoogleTasksServiceOptions =
+  | {
+      // Mode 1: Using refresh token (original mode for stdio/local)
+      mode: 'refresh_token';
+      refreshToken: string;
+      clientId: string;
+      clientSecret: string;
+    }
+  | {
+      // Mode 2: Using access token (for HTTP with OAuth)
+      mode: 'access_token';
+      accessToken: string;
+    };
+
 export class GoogleTasksService {
   private auth: Auth.OAuth2Client;
   private tasksApi: ReturnType<typeof google.tasks>;
 
-  constructor(refreshToken: string, clientId: string, clientSecret: string) {
-    this.auth = new google.auth.OAuth2(clientId, clientSecret);
-    this.auth.setCredentials({
-      refresh_token: refreshToken,
-    });
+  constructor(options: GoogleTasksServiceOptions) {
+    this.auth = new google.auth.OAuth2();
+
+    if (options.mode === 'refresh_token') {
+      // Original mode: use refresh token with client credentials
+      this.auth = new google.auth.OAuth2(
+        options.clientId,
+        options.clientSecret
+      );
+      this.auth.setCredentials({
+        refresh_token: options.refreshToken,
+      });
+    } else {
+      // Access token mode: just set the access token directly
+      this.auth.setCredentials({
+        access_token: options.accessToken,
+      });
+    }
+
     this.tasksApi = google.tasks('v1');
+  }
+
+  /**
+   * Create service from refresh token (for backward compatibility)
+   */
+  static fromRefreshToken(
+    refreshToken: string,
+    clientId: string,
+    clientSecret: string
+  ): GoogleTasksService {
+    return new GoogleTasksService({
+      mode: 'refresh_token',
+      refreshToken,
+      clientId,
+      clientSecret,
+    });
+  }
+
+  /**
+   * Create service from access token (for OAuth flow)
+   */
+  static fromAccessToken(accessToken: string): GoogleTasksService {
+    return new GoogleTasksService({
+      mode: 'access_token',
+      accessToken,
+    });
   }
 
   /**

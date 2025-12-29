@@ -36,7 +36,8 @@ cp .env.example .env
 4. Configure your `.env` file with:
    - `GOOGLE_CLIENT_ID` - Your Google OAuth Client ID
    - `GOOGLE_CLIENT_SECRET` - Your Google OAuth Client Secret
-   - `GOOGLE_REFRESH_TOKEN` - Your OAuth Refresh Token
+   - `GOOGLE_REFRESH_TOKEN` - Your OAuth Refresh Token (for stdio mode)
+   - `OAUTH_SERVER_URL` - (Optional) Your server's public URL to enable OAuth for HTTP mode
 
 ### Getting OAuth Credentials
 
@@ -127,6 +128,29 @@ You can also set the hostname with `HOST`:
 ```bash
 HOST=localhost PORT=3000 bun run server:http
 ```
+
+**HTTP with OAuth (for ChatGPT and other MCP clients):**
+
+To enable OAuth authentication, set `OAUTH_SERVER_URL` to your server's public URL:
+
+```bash
+OAUTH_SERVER_URL=https://your-server.com bun run server:http
+```
+
+This enables OAuth endpoints that allow users to authenticate with their own Google account:
+
+- `/.well-known/oauth-authorization-server` - OAuth metadata discovery
+- `/authorize` - Starts OAuth flow (redirects to Google)
+- `/callback` - Handles Google OAuth callback
+- `/token` - Exchanges authorization code for tokens
+
+**Important:** When using OAuth mode, add your callback URL to Google Cloud Console:
+
+```
+https://your-server.com/callback
+```
+
+(In Credentials → OAuth 2.0 Client IDs → Authorized redirect URIs)
 
 The stdio server uses stdio transport for MCP communication and can be configured in MCP clients like Claude Desktop.
 

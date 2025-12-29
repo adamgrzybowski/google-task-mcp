@@ -28,7 +28,7 @@ async function testLists() {
   console.log('📋 Fetching task lists...\n');
 
   try {
-    const service = new GoogleTasksService(
+    const service = GoogleTasksService.fromRefreshToken(
       refreshToken,
       clientId,
       clientSecret

@@ -31,7 +31,7 @@ async function testConnection() {
   console.log('🔌 Testing Google Tasks API connection...\n');
 
   try {
-    const service = new GoogleTasksService(
+    const service = GoogleTasksService.fromRefreshToken(
       refreshToken,
       clientId,
       clientSecret

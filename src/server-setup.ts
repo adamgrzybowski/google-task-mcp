@@ -44,6 +44,7 @@ export const SERVER_INFO: Implementation = {
 
 /**
  * Load environment variables and create Google Tasks service
+ * Uses refresh token from environment (for stdio mode)
  */
 export function createGoogleTasksService(): GoogleTasksService {
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -56,7 +57,21 @@ export function createGoogleTasksService(): GoogleTasksService {
     );
   }
 
-  return new GoogleTasksService(refreshToken, clientId, clientSecret);
+  return GoogleTasksService.fromRefreshToken(
+    refreshToken,
+    clientId,
+    clientSecret
+  );
+}
+
+/**
+ * Create Google Tasks service from access token
+ * Used by HTTP server when OAuth token is provided in Authorization header
+ */
+export function createGoogleTasksServiceFromAccessToken(
+  accessToken: string
+): GoogleTasksService {
+  return GoogleTasksService.fromAccessToken(accessToken);
 }
 
 /**
@@ -154,13 +169,28 @@ export function registerTools(
 }
 
 /**
+ * Options for creating MCP server
+ */
+export interface CreateMcpServerOptions {
+  /**
+   * If provided, use this access token instead of refresh token from env.
+   * Used by HTTP server when OAuth is enabled.
+   */
+  accessToken?: string;
+}
+
+/**
  * Create and configure an MCP server instance
  */
-export function createMcpServer(): {
+export function createMcpServer(options?: CreateMcpServerOptions): {
   server: McpServer;
   service: GoogleTasksService;
 } {
-  const service = createGoogleTasksService();
+  // Create service based on options
+  const service = options?.accessToken
+    ? createGoogleTasksServiceFromAccessToken(options.accessToken)
+    : createGoogleTasksService();
+
   const server = new McpServer(SERVER_INFO, {
     capabilities: {
       tools: {},
