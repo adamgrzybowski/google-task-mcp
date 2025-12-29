@@ -52,8 +52,8 @@ function extractAccessToken(req: Request): string | null {
 }
 
 async function main() {
-  const port = parseInt(process.env.PORT || '20187', 10);
-  const host = process.env.HOST || '::';
+  const port = parseInt(process.env.PORT || '3000', 10);
+  const host = process.env.HOST || '0.0.0.0';
 
   // Check if OAuth is enabled (OAUTH_SERVER_URL is set)
   const oauthEnabled = !!process.env.OAUTH_SERVER_URL;

@@ -10,10 +10,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit",
-    "test:connection": "bun run test-connection.ts",
-    "test:lists": "bun run test-lists.ts",
-    "get-oauth-token": "bun run get-oauth-token.ts"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.1",

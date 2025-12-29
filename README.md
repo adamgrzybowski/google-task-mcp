@@ -9,14 +9,14 @@ A Model Context Protocol (MCP) server that enables integration with Google Tasks
 - Create new tasks in Google Tasks
 - Update existing tasks (title, notes, due date, status)
 - Delete tasks from Google Tasks
-- OAuth 2.0 authentication with automatic token refresh
+- OAuth 2.0 authentication (user logs in via browser)
 - MCP protocol compliance
 
 ## Prerequisites
 
 - [Bun](https://bun.sh) runtime (v1.x or later)
 - Google Cloud Project with Tasks API enabled
-- OAuth 2.0 credentials (Client ID, Client Secret, Refresh Token)
+- OAuth 2.0 credentials (Client ID, Client Secret)
 
 ## Installation
 
@@ -27,23 +27,30 @@ A Model Context Protocol (MCP) server that enables integration with Google Tasks
 bun install
 ```
 
-3. Copy `.env.example` to `.env` and fill in your Google OAuth credentials:
+3. Create a `.env` file with your credentials (see Configuration below)
+
+## Configuration
+
+### Environment Variables
+
+| Variable               | Required | Description                     |
+| ---------------------- | -------- | ------------------------------- |
+| `GOOGLE_CLIENT_ID`     | Yes      | Google OAuth Client ID          |
+| `GOOGLE_CLIENT_SECRET` | Yes      | Google OAuth Client Secret      |
+| `OAUTH_SERVER_URL`     | Yes      | Public HTTPS URL of your server |
+| `PORT`                 | No       | Server port (default: `20187`)  |
+| `HOST`                 | No       | Bind address (default: `::`)    |
+
+### Example `.env`
 
 ```bash
-cp .env.example .env
+GOOGLE_CLIENT_ID=123456789-abc.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-xxxxxxxxxxxxx
+OAUTH_SERVER_URL=https://mcp.example.com
+PORT=20187
 ```
 
-4. Configure your `.env` file with:
-   - `GOOGLE_CLIENT_ID` - Your Google OAuth Client ID
-   - `GOOGLE_CLIENT_SECRET` - Your Google OAuth Client Secret
-   - `GOOGLE_REFRESH_TOKEN` - Your OAuth Refresh Token (for stdio mode)
-   - `OAUTH_SERVER_URL` - (Optional) Your server's public URL to enable OAuth for HTTP mode
-
-### Getting OAuth Credentials
-
-To access your private Google Tasks, you need to set up OAuth 2.0 credentials:
-
-#### Step 1: Create OAuth Credentials in Google Cloud Console
+### Getting Google OAuth Credentials
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select an existing one
@@ -54,131 +61,47 @@ To access your private Google Tasks, you need to set up OAuth 2.0 credentials:
 4. Create OAuth 2.0 credentials:
    - Go to **APIs & Services** > **Credentials**
    - Click **Create Credentials** > **OAuth client ID**
-   - Application type: **Desktop app**
-   - Name: "Google Tasks MCP" (or any name you prefer)
+   - Application type: **Web application**
+   - Name: "Google Tasks MCP"
+   - Add **Authorized redirect URI**: `https://YOUR_SERVER/callback`
    - Click **Create**
-5. Copy the **Client ID** and **Client Secret**
-6. Add them to your `.env` file:
-   ```
-   GOOGLE_CLIENT_ID=your_client_id_here
-   GOOGLE_CLIENT_SECRET=your_client_secret_here
-   ```
-
-#### Step 2: Get Your Refresh Token
-
-After setting up Client ID and Client Secret, get your refresh token:
-
-```bash
-bun run get-oauth-token
-```
-
-This will:
-
-1. Open a browser window asking you to sign in with your Google account
-2. Ask for permission to access Google Tasks
-3. Give you an authorization code
-4. Exchange it for a refresh token
-5. Save the refresh token to your `.env` file
-
-**Important:** The refresh token allows the application to access your Google Tasks without you needing to sign in again. Keep it secure and never commit it to git.
-
-#### How It Works
-
-1. **Initial Authorization**: When you run `get-oauth-token`, you authorize the app to access your Google Tasks
-2. **Refresh Token**: Google gives you a refresh token that doesn't expire (unless revoked)
-3. **Automatic Token Refresh**: The app uses the refresh token to get new access tokens automatically when needed (access tokens expire after ~1 hour)
-4. **No Re-authorization Needed**: Once you have the refresh token, you don't need to sign in again - everything happens automatically in the background
+5. Copy **Client ID** and **Client Secret** to your `.env`
 
 ## Usage
 
-### Testing the Connection
-
-Before running the MCP server, you can test your Google API connection:
-
-```bash
-bun run test:connection
-```
-
-This will verify that your OAuth credentials are correct and that you can successfully connect to the Google Tasks API.
-
-### Running the MCP Server
-
-You can run the server in two modes:
-
-**Stdio transport (for MCP clients like Claude Desktop):**
-
-```bash
-bun run server:stdio
-```
-
-**HTTP transport (for web applications/API access):**
+### Running the Server
 
 ```bash
 bun run server:http
 ```
 
-The HTTP server runs on port `20187` by default. You can change it by setting the `PORT` environment variable:
+The server exposes:
 
-```bash
-PORT=3000 bun run server:http
-```
+- MCP protocol endpoints for tool calls
+- OAuth endpoints for user authentication
 
-You can also set the hostname with `HOST`:
+### OAuth Endpoints
 
-```bash
-HOST=localhost PORT=3000 bun run server:http
-```
+| Endpoint                                  | Description                             |
+| ----------------------------------------- | --------------------------------------- |
+| `/.well-known/oauth-authorization-server` | OAuth metadata discovery                |
+| `/.well-known/oauth-protected-resource`   | Protected resource metadata             |
+| `/authorize`                              | Starts OAuth flow (redirects to Google) |
+| `/callback`                               | Handles Google OAuth callback           |
+| `/token`                                  | Exchanges authorization code for tokens |
+| `/register`                               | Dynamic Client Registration (RFC 7591)  |
 
-**HTTP with OAuth (for ChatGPT and other MCP clients):**
+### OAuth Flow
 
-To enable OAuth authentication, set `OAUTH_SERVER_URL` to your server's public URL:
-
-```bash
-OAUTH_SERVER_URL=https://your-server.com bun run server:http
-```
-
-This enables OAuth endpoints that allow users to authenticate with their own Google account:
-
-- `/.well-known/oauth-authorization-server` - OAuth metadata discovery
-- `/authorize` - Starts OAuth flow (redirects to Google)
-- `/callback` - Handles Google OAuth callback
-- `/token` - Exchanges authorization code for tokens
-
-**Important:** When using OAuth mode, add your callback URL to Google Cloud Console:
-
-```
-https://your-server.com/callback
-```
-
-(In Credentials → OAuth 2.0 Client IDs → Authorized redirect URIs)
-
-The stdio server uses stdio transport for MCP communication and can be configured in MCP clients like Claude Desktop.
-
-### Configuring MCP Clients
-
-**For Claude Desktop**, add this to your MCP configuration file (usually `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
-
-```json
-{
-  "mcpServers": {
-    "google-tasks": {
-      "command": "bun",
-      "args": ["run", "src/server-stdio.ts"],
-      "cwd": "/Users/adamgrzybowski/private/google-task-mcp"
-    }
-  }
-}
-```
-
-**Important:**
-
-- Use `"command": "bun"` (NOT `"node"`)
-- Make sure the `cwd` path points to your project directory
-- After changing the config, restart Claude Desktop
+1. Client calls `/.well-known/oauth-authorization-server` to discover endpoints
+2. Client redirects user to `/authorize`
+3. `/authorize` redirects to Google OAuth
+4. Google redirects back to `/callback` with authorization code
+5. `/callback` redirects to client with our code
+6. Client calls `/token` to exchange code for tokens
+7. Client uses access token to make MCP requests
 
 ## Architecture
-
-### Data Flow
 
 ```
 ┌─────────────────┐
@@ -186,11 +109,15 @@ The stdio server uses stdio transport for MCP communication and can be configure
 │  (ChatGPT)      │
 └────────┬────────┘
          │
-         │ MCP Protocol (stdio, JSON-RPC)
+         │ MCP Protocol (HTTP, JSON-RPC)
          │
          ▼
 ┌─────────────────────────────────────────┐
 │      MCP Google Tasks Server (Bun)      │
+│  ┌───────────────────────────────────┐  │
+│  │  OAuth Handler                     │  │
+│  │  - /authorize, /callback, /token   │  │
+│  └───────────────────────────────────┘  │
 │  ┌───────────────────────────────────┐  │
 │  │  MCP Protocol Handler              │  │
 │  │  - Request routing                 │  │
@@ -221,46 +148,56 @@ The stdio server uses stdio transport for MCP communication and can be configure
 └─────────────────────────┘
 ```
 
-### System Components
-
-- **MCP Protocol Handler**: Handles MCP protocol-compliant communication, routes requests, registers tools, handles JSON-RPC over stdio
-- **Tool Handlers**: Implementations of task operations, each responsible for one action, return results in MCP format
-- **Google Tasks Service**: Executes API requests with automatic OAuth token refresh (handled by googleapis), basic error handling
-
-### Operation Flow
-
-1. MCP Client sends tool call request
-2. MCP Protocol Handler routes to appropriate tool handler
-3. Tool Handler validates parameters and calls Google Tasks Service
-4. Google Tasks Service makes API calls (googleapis handles OAuth token refresh automatically)
-5. Response flows back through the chain to MCP Client
-
 ## Project Structure
 
 ```
 google-task-mcp/
 ├── src/
-│   ├── server-stdio.ts        # MCP server with stdio transport
-│   ├── server-http.ts         # MCP server with HTTP transport
-│   ├── server-setup.ts        # Shared server setup code
+│   ├── server-http.ts           # HTTP server entry point
+│   ├── server-stdio.ts          # STDIO server (legacy/local use)
 │   ├── mcp/
-│   │   └── tools/            # MCP tool handlers
+│   │   ├── createMcpServer.ts   # MCP server factory
+│   │   ├── schemas/
+│   │   │   └── task.ts          # Zod schemas for validation
+│   │   └── tools/               # MCP tool handlers
 │   │       ├── tasklists.ts
 │   │       ├── task_create.ts
 │   │       ├── tasks_list.ts
 │   │       ├── task_update.ts
 │   │       └── task_delete.ts
+│   ├── oauth/                   # OAuth 2.0 implementation
+│   │   ├── index.ts             # Re-exports
+│   │   ├── router.ts            # OAuth request routing
+│   │   ├── config.ts            # OAuth configuration
+│   │   ├── types.ts             # TypeScript interfaces
+│   │   ├── storage.ts           # In-memory state storage
+│   │   ├── helpers.ts           # Utility functions
+│   │   └── handlers/
+│   │       ├── wellKnown.ts     # Discovery endpoints
+│   │       ├── authorize.ts     # /authorize
+│   │       ├── callback.ts      # /callback
+│   │       ├── token.ts         # /token
+│   │       └── register.ts      # /register (DCR)
 │   ├── services/
-│   │   └── GoogleTasksService.ts  # Google Tasks API client & types
+│   │   └── GoogleTasksService.ts
 │   └── utils/
-│       ├── errors.ts         # Error utilities
+│       ├── errors.ts
 │       ├── createSuccessResponse.ts
 │       └── createErrorResponse.ts
 ├── package.json
 ├── tsconfig.json
-├── .env.example
 └── README.md
 ```
+
+## MCP Tools
+
+| Tool             | Type  | Description                       |
+| ---------------- | ----- | --------------------------------- |
+| `tasklists_list` | Read  | Returns list of user's task lists |
+| `tasks_list`     | Read  | Returns tasks from a task list    |
+| `task_create`    | Write | Creates a new task                |
+| `task_update`    | Write | Updates an existing task          |
+| `task_delete`    | Write | Deletes a task                    |
 
 ## Technology Stack
 
@@ -269,33 +206,29 @@ google-task-mcp/
 - **Protocol**: MCP (Model Context Protocol)
 - **Libraries**: `@modelcontextprotocol/sdk`, `googleapis`
 
-## MCP Interface (Tools)
-
-- **tasklists_list** (Read): Returns list of user's task lists
-- **task_create** (Write): Creates a new task with `{ title, notes?, due?, listId? }`
-- **tasks_list** (Read): Returns list of tasks from a specified task list with `{ listId? }`
-- **task_update** (Write): Updates an existing task with `{ listId, taskId, title?, notes?, due?, status? }`
-- **task_delete** (Write): Deletes a task with `{ listId, taskId }`
-
 ## Security
 
 - OAuth 2.0 with scope limited to Google Tasks
-- Refresh token stored in-memory (user provides via env var)
+- Access tokens stored per-session in memory
 - Tokens **never reach the LLM**
-- Basic input validation with length limits
-
-## HTTP Server Endpoints
-
-When running the HTTP server (`bun run server:http`), the following endpoints are available:
-
-- **`GET /`** - MCP protocol endpoint (SSE stream)
-- **`POST /`** - MCP protocol endpoint (JSON-RPC)
-
-The HTTP server uses the official MCP SDK `WebStandardStreamableHTTPServerTransport`, which handles all MCP protocol communication automatically.
+- HTTPS required for production
+- PKCE support (S256)
 
 ## Development
 
-Built with Bun, TypeScript, and the MCP SDK. The server supports both stdio and HTTP transports for MCP communication.
+```bash
+# Run server
+bun run server:http
+
+# Lint
+bun run lint
+
+# Format
+bun run format
+
+# Type check
+bun run typecheck
+```
 
 ## License
 
