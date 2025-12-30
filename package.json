@@ -6,6 +6,8 @@
   "scripts": {
     "server:stdio": "bun run src/server-stdio.ts",
     "server:http": "bun run src/server-http.ts",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
