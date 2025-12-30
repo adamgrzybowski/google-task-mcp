@@ -32,3 +32,14 @@ export interface RegisteredClient {
   client_name?: string;
   created_at: number;
 }
+
+/**
+ * Stored token data for server-side token refresh
+ * Maps access_token -> refresh credentials
+ */
+export interface StoredTokenData {
+  refreshToken: string;
+  accessToken: string;
+  expiresAt: number; // Unix timestamp in ms
+  createdAt: number;
+}

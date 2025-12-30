@@ -137,14 +137,29 @@ export function registerTools(
 }
 
 /**
+ * OAuth credentials for server-side token refresh
+ */
+export interface OAuthCredentials {
+  refreshToken: string;
+  clientId: string;
+  clientSecret: string;
+}
+
+/**
  * Options for creating MCP server
  */
 export interface CreateMcpServerOptions {
   /**
    * If provided, use this access token instead of refresh token from env.
-   * Used by HTTP server when OAuth is enabled.
+   * Used by HTTP server when OAuth is enabled (legacy mode - no auto-refresh).
    */
   accessToken?: string;
+
+  /**
+   * If provided, use OAuth credentials for automatic token refresh.
+   * This is the preferred mode for HTTP server - tokens will auto-refresh!
+   */
+  oauthCredentials?: OAuthCredentials;
 }
 
 /**
@@ -155,9 +170,24 @@ export function createMcpServer(options?: CreateMcpServerOptions): {
   service: GoogleTasksService;
 } {
   // Create service based on options
-  const service = options?.accessToken
-    ? GoogleTasksService.fromAccessToken(options.accessToken)
-    : GoogleTasksService.fromEnv();
+  let service: GoogleTasksService;
+
+  if (options?.oauthCredentials) {
+    // Preferred: Use refresh token with OAuth credentials (auto-refresh enabled!)
+    console.error('[MCP] Creating service with OAuth credentials (auto-refresh enabled)');
+    service = GoogleTasksService.fromRefreshToken(
+      options.oauthCredentials.refreshToken,
+      options.oauthCredentials.clientId,
+      options.oauthCredentials.clientSecret
+    );
+  } else if (options?.accessToken) {
+    // Legacy: Use access token only (will expire after ~1h)
+    console.error('[MCP] Creating service with access token only (no auto-refresh!)');
+    service = GoogleTasksService.fromAccessToken(options.accessToken);
+  } else {
+    // Fallback: Use environment variables
+    service = GoogleTasksService.fromEnv();
+  }
 
   const server = new McpServer(SERVER_INFO, {
     capabilities: {

@@ -40,3 +40,6 @@ export { handleClientRegistration } from './handlers/register.js';
 
 // Helpers (if needed externally)
 export { generateRandomString, jsonResponse } from './helpers.js';
+
+// Token storage (for server-side token refresh)
+export { getTokenData, storeTokenData, updateAccessToken } from './storage.js';

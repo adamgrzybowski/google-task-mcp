@@ -32,10 +32,15 @@ if (typeof Bun === 'undefined') {
 }
 
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
-import { createMcpServer, SERVER_INFO } from './mcp/createMcpServer.js';
+import {
+  createMcpServer,
+  SERVER_INFO,
+  type OAuthCredentials,
+} from './mcp/createMcpServer.js';
 import {
   handleOAuthRequest,
   createOAuthConfig,
+  getTokenData,
   type OAuthConfig,
 } from './oauth/index.js';
 
@@ -158,9 +163,34 @@ async function main() {
 
         // Create new server AND transport for new session
         // McpServer can only be connected to ONE transport, so each session needs its own server
-        // Pass access token if available (for OAuth mode)
+
+        // Try to get stored refresh token for automatic token refresh
+        let oauthCredentials: OAuthCredentials | undefined;
+        if (accessToken && oauthConfig) {
+          const tokenData = getTokenData(accessToken);
+          if (tokenData) {
+            console.error(
+              `[HTTP] Found stored refresh token for access token, enabling auto-refresh`
+            );
+            oauthCredentials = {
+              refreshToken: tokenData.refreshToken,
+              clientId: oauthConfig.googleClientId,
+              clientSecret: oauthConfig.googleClientSecret,
+            };
+          } else {
+            console.error(
+              `[HTTP] ⚠️ No stored refresh token found - token will expire after ~1h!`
+            );
+          }
+        }
+
+        // Create server with OAuth credentials (preferred) or access token only (legacy)
         const { server } = createMcpServer(
-          accessToken ? { accessToken } : undefined
+          oauthCredentials
+            ? { oauthCredentials }
+            : accessToken
+              ? { accessToken }
+              : undefined
         );
         const transport = new WebStandardStreamableHTTPServerTransport({
           sessionIdGenerator: () => crypto.randomUUID(),

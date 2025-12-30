@@ -5,7 +5,11 @@
 import { google } from 'googleapis';
 import type { OAuthConfig } from '../types.js';
 import { jsonResponse } from '../helpers.js';
-import { codeToAuthorization, pendingAuthorizations } from '../storage.js';
+import {
+  codeToAuthorization,
+  pendingAuthorizations,
+  storeTokenData,
+} from '../storage.js';
 
 /**
  * POST /token
@@ -102,9 +106,16 @@ async function handleAuthorizationCodeGrant(
     console.error(
       `[OAuth]   refresh_token: ${tokens.refresh_token ? tokens.refresh_token.substring(0, 20) + '...' : 'none'}`
     );
-    console.error(
-      `[OAuth]   expires_in: ${tokens.expiry_date ? Math.floor((tokens.expiry_date - Date.now()) / 1000) : 3600}s`
-    );
+    const expiresIn = tokens.expiry_date
+      ? Math.floor((tokens.expiry_date - Date.now()) / 1000)
+      : 3600;
+    console.error(`[OAuth]   expires_in: ${expiresIn}s`);
+
+    // Store refresh token server-side for automatic token refresh
+    // This is the key to solving the "token expires after 1h" problem!
+    if (tokens.access_token && tokens.refresh_token) {
+      storeTokenData(tokens.access_token, tokens.refresh_token, expiresIn);
+    }
 
     // Clean up
     codeToAuthorization.delete(code);
@@ -114,9 +125,7 @@ async function handleAuthorizationCodeGrant(
     return jsonResponse({
       access_token: tokens.access_token,
       token_type: 'Bearer',
-      expires_in: tokens.expiry_date
-        ? Math.floor((tokens.expiry_date - Date.now()) / 1000)
-        : 3600,
+      expires_in: expiresIn,
       refresh_token: tokens.refresh_token,
       scope: tokens.scope,
     });
