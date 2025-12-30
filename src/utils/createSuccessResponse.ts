@@ -17,4 +17,3 @@ export function createSuccessResponse(data: unknown): CallToolResult {
     structuredContent: data as Record<string, unknown>,
   };
 }
-

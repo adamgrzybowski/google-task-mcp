@@ -73,4 +73,3 @@ export async function handleOAuthRequest(
   // Not an OAuth request
   return null;
 }
-

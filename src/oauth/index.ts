@@ -15,7 +15,11 @@
  */
 
 // Types
-export type { OAuthConfig, PendingAuthorization, RegisteredClient } from './types.js';
+export type {
+  OAuthConfig,
+  PendingAuthorization,
+  RegisteredClient,
+} from './types.js';
 
 // Config
 export { createOAuthConfig } from './config.js';
@@ -24,7 +28,11 @@ export { createOAuthConfig } from './config.js';
 export { handleOAuthRequest } from './router.js';
 
 // Individual handlers (if needed for testing or custom routing)
-export { handleWellKnown, handleProtectedResource, handleOpenIdConfiguration } from './handlers/wellKnown.js';
+export {
+  handleWellKnown,
+  handleProtectedResource,
+  handleOpenIdConfiguration,
+} from './handlers/wellKnown.js';
 export { handleAuthorize } from './handlers/authorize.js';
 export { handleCallback } from './handlers/callback.js';
 export { handleToken } from './handlers/token.js';
@@ -32,4 +40,3 @@ export { handleClientRegistration } from './handlers/register.js';
 
 // Helpers (if needed externally)
 export { generateRandomString, jsonResponse } from './helpers.js';
-

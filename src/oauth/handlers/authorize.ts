@@ -84,4 +84,3 @@ export function handleAuthorize(req: Request, config: OAuthConfig): Response {
     },
   });
 }
-

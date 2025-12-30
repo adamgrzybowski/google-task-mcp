@@ -76,4 +76,3 @@ export function handleOpenIdConfiguration(config: OAuthConfig): Response {
   console.error('[OAuth] Returning:', JSON.stringify(metadata, null, 2));
   return jsonResponse(metadata);
 }
-

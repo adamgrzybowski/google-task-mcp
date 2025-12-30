@@ -81,4 +81,3 @@ export function handleCallback(req: Request): Response {
     },
   });
 }
-

@@ -1,10 +1,9 @@
 services:
-
   mcp:
     image: google-task-mcp:latest
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3000:20187"
+      - '3000:20187'
     restart: unless-stopped

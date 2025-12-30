@@ -15,4 +15,3 @@ export function createErrorResponse(message: string): CallToolResult {
     isError: true,
   };
 }
-
