@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - '3000:20187'
+      - '20187:3000'
     env_file:
       - .env
     restart: unless-stopped
