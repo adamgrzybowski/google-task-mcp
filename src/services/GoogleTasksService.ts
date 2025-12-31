@@ -174,19 +174,6 @@ export class GoogleTasksService {
     listId: string = '@default'
   ): Promise<GoogleTask> {
     try {
-      // Validate input
-      if (!task.title || task.title.trim().length === 0) {
-        throw new Error('Task title is required');
-      }
-
-      if (task.title.length > 1024) {
-        throw new Error('Task title must be 1024 characters or less');
-      }
-
-      if (task.notes && task.notes.length > 8192) {
-        throw new Error('Task notes must be 8192 characters or less');
-      }
-
       const response = await this.tasksApi.tasks.insert({
         auth: this.auth,
         tasklist: listId,
@@ -275,20 +262,6 @@ export class GoogleTasksService {
     updates: UpdateTaskRequest
   ): Promise<GoogleTask> {
     try {
-      // Validate input
-      if (updates.title !== undefined) {
-        if (!updates.title || updates.title.trim().length === 0) {
-          throw new Error('Task title cannot be empty');
-        }
-        if (updates.title.length > 1024) {
-          throw new Error('Task title must be 1024 characters or less');
-        }
-      }
-
-      if (updates.notes !== undefined && updates.notes.length > 8192) {
-        throw new Error('Task notes must be 8192 characters or less');
-      }
-
       const response = await this.tasksApi.tasks.update({
         auth: this.auth,
         tasklist: listId,

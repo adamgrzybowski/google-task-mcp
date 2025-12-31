@@ -5,7 +5,6 @@
 import { z } from 'zod';
 import type { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { GoogleTasksService } from '../../services/GoogleTasksService.js';
-import { wrapError } from '../../utils/errors.js';
 import { createSuccessResponse } from '../../utils/createSuccessResponse.js';
 import { createErrorResponse } from '../../utils/createErrorResponse.js';
 import { taskSchema } from '../schemas/task.js';
@@ -44,8 +43,8 @@ export function createTasksListHandler(
       return createSuccessResponse({ tasks });
     } catch (error) {
       console.error(`[tasks_list] Error fetching tasks:`, error);
-      const wrappedError = wrapError(error);
-      return createErrorResponse(wrappedError.message);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return createErrorResponse(message);
     }
   };
 }

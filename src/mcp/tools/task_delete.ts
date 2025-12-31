@@ -5,7 +5,6 @@
 import { z } from 'zod';
 import type { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { GoogleTasksService } from '../../services/GoogleTasksService.js';
-import { wrapError } from '../../utils/errors.js';
 import { createSuccessResponse } from '../../utils/createSuccessResponse.js';
 import { createErrorResponse } from '../../utils/createErrorResponse.js';
 
@@ -76,8 +75,8 @@ export function createTaskDeleteHandler(
       }
 
       console.error(`[task_delete] Error deleting task ${args.taskId}:`, error);
-      const wrappedError = wrapError(error);
-      return createErrorResponse(wrappedError.message);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return createErrorResponse(message);
     }
   };
 }

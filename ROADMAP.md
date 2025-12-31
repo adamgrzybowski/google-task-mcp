@@ -10,3 +10,7 @@
 - **Phase 6:** Refactoring (modular OAuth handlers)
 - **Phase 7:** Documentation
 - **Phase 8:** OAuth Token Stability (auto-refresh, persistent storage)
+
+## TODO
+
+- **stdio transport auth:** Currently `server-stdio.ts` doesn't handle OAuth. Need to add support for local token storage or environment-based auth for Cursor/Claude Desktop usage.

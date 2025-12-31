@@ -5,7 +5,6 @@
 import { z } from 'zod';
 import type { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { GoogleTasksService } from '../../services/GoogleTasksService.js';
-import { wrapError } from '../../utils/errors.js';
 import { createSuccessResponse } from '../../utils/createSuccessResponse.js';
 import { createErrorResponse } from '../../utils/createErrorResponse.js';
 import { taskSchema, dueDateSchema } from '../schemas/task.js';
@@ -109,8 +108,9 @@ export function createCreateTaskHandler(
 
       return createSuccessResponse({ task });
     } catch (error) {
-      const wrappedError = wrapError(error);
-      return createErrorResponse(wrappedError.message);
+      console.error(`[task_create] Error creating task:`, error);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return createErrorResponse(message);
     }
   };
 }
